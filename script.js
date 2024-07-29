@@ -190,7 +190,7 @@ function updateScoreOptions(scoreSelect, role) {
         scoreSelect.innerHTML += `
             <option value="4">四跑</option>
             <option value="3">三跑</option>
-            <option value="2">二跑</option>
+            <option value="2">平局</option>
             <option value="1">一跑</option>
             <option value="0">零跑</option>
         `;
@@ -278,6 +278,9 @@ function updateResults() {
         if (time) {
             const seconds = formatTimeToSeconds(time);
             document.querySelector(`span[data-id="${resultId}-time-display"]`).textContent = `${seconds}秒`;
+            // Update the score result with the seconds
+            const scoreResult = document.querySelector(`span[data-id="${resultId}"]`).textContent;
+            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${scoreResult} (${seconds})`;
         }
     });
 
