@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>比赛生成器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>比赛生成器</h1>
+        <div id="input-stage">
+            <div>
+                <label for="home-team">主场队伍：</label>
+                <input type="text" id="home-team">
+            </div>
+            <div>
+                <label for="away-team">客场队伍：</label>
+                <input type="text" id="away-team">
+            </div>
+            <button id="next-button">下一步</button>
+        </div>
+        <div id="output-stage" style="display:none;">
+            <h2 id="match-title"></h2>
+            <div id="matches"></div>
+            <button id="add-bo" style="display:none;">添加BO3</button>
+            <button id="add-tiebreaker" style="display:none;">添加加赛</button>
+            <div id="results">
+                <h3>比赛结果</h3>
+                <table id="results-table">
+                    <thead>
+                        <tr id="results-header">
+                            <th>BO1</th>
+                            <th>BO2</th>
+                            <th id="bo3-header" style="display:none;">BO3</th>
+                            <th id="tiebreaker-header" style="display:none;">加赛</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr id="results-row1">
+                            <td id="bo1-result1"></td>
+                            <td id="bo2-result1"></td>
+                            <td id="bo3-result1" style="display:none;"></td>
+                            <td id="tiebreaker-result1" style="display:none;"></td>
+                        </tr>
+                        <tr id="results-row2">
+                            <td id="bo1-result2"></td>
+                            <td id="bo2-result2"></td>
+                            <td id="bo3-result2" style="display:none;"></td>
+                            <td id="tiebreaker-result2" style="display:none;"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
