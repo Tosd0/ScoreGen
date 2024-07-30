@@ -19,9 +19,14 @@
                 <input type="text" id="away-team">
             </div>
             <button id="next-button">下一步</button>
+            <button id="restore-button">恢复数据</button>
         </div>
         <div id="output-stage" style="display:none;">
             <h2 id="match-title"></h2>
+            <div id="restored-data" style="display:none; border: 2px solid #000; padding: 10px; margin-bottom: 20px;">
+                <h3>上次填写的数据：</h3>
+                <pre id="restored-data-content"></pre>
+            </div>
             <div id="matches"></div>
             <button id="add-bo" style="display:none;">添加BO3</button>
             <button id="add-tiebreaker" style="display:none;">添加加赛</button>
