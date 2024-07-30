@@ -1,3 +1,7 @@
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById('restore-button').addEventListener('click', restoreData);
+});
+
 document.getElementById('next-button').addEventListener('click', function() {
     const homeTeam = document.getElementById('home-team').value;
     const awayTeam = document.getElementById('away-team').value;
@@ -6,10 +10,10 @@ document.getElementById('next-button').addEventListener('click', function() {
         document.getElementById('input-stage').style.display = 'none';
         document.getElementById('output-stage').style.display = 'block';
         document.getElementById('match-title').textContent = `${homeTeam} vs ${awayTeam}`;
-
         createBO('bo1', homeTeam, awayTeam);
         createBO('bo2', homeTeam, awayTeam);
         document.getElementById('add-bo').style.display = 'block';
+        saveData();
     } else {
         alert('请填写所有队伍名称');
     }
@@ -27,6 +31,7 @@ document.getElementById('add-bo').addEventListener('click', function() {
         document.getElementById('add-bo').style.display = 'none';
         document.getElementById('add-tiebreaker').style.display = 'block';
     }
+    saveData();
 });
 
 document.getElementById('add-tiebreaker').addEventListener('click', function() {
@@ -35,6 +40,180 @@ document.getElementById('add-tiebreaker').addEventListener('click', function() {
     document.getElementById('tiebreaker-result1').style.display = 'table-cell';
     document.getElementById('tiebreaker-result2').style.display = 'table-cell';
     document.getElementById('add-tiebreaker').style.display = 'none';
+    saveData();
+});
+
+function restoreData() {
+    const savedData = localStorage.getItem('matchData');
+    if (savedData) {
+        const data = JSON.parse(savedData);
+        console.log('Restoring data:', data);
+        document.getElementById('home-team').value = data.homeTeam;
+        document.getElementById('away-team').value = data.awayTeam;
+        document.getElementById('next-button').click();
+        setTimeout(() => {
+            loadSavedData(data);
+            displayRestoredData(data);
+        }, 100);
+    } else {
+        alert('没有找到任何保存的数据。');
+    }
+}
+
+function saveData() {
+    const matchData = {
+        homeTeam: document.getElementById('home-team').value,
+        awayTeam: document.getElementById('away-team').value,
+        bos: [],
+        tiebreaker: null,
+    };
+
+    const boDivs = document.querySelectorAll('[id^=bo]');
+    boDivs.forEach(boDiv => {
+        const boId = boDiv.id;
+        const role1 = document.querySelector(`select[data-result-id="${boId}-result1"]`);
+        const result1 = document.querySelector(`select[data-id="${boId}-result1-home"]`);
+        const role2 = document.querySelector(`select[data-result-id="${boId}-result2"]`);
+        const result2 = document.querySelector(`select[data-id="${boId}-result2-home"]`);
+
+        if (role1 && result1 && role2 && result2) {
+            matchData.bos.push({
+                boId,
+                role1: role1.value,
+                result1: result1.value,
+                role2: role2.value,
+                result2: result2.value
+            });
+        } else {
+            console.error(`Elements not found for ${boId}`);
+        }
+    });
+
+    const tiebreakerDiv = document.getElementById('tiebreaker');
+    if (tiebreakerDiv) {
+        const role1 = document.querySelector(`select[data-result-id="tiebreaker-result1"]`);
+        const result1 = document.querySelector(`select[data-id="tiebreaker-result1-home"]`);
+        const time1 = document.querySelector(`input[data-id="tiebreaker-result1-time"]`);
+        const role2 = document.querySelector(`select[data-result-id="tiebreaker-result2"]`);
+        const result2 = document.querySelector(`select[data-id="tiebreaker-result2-home"]`);
+        const time2 = document.querySelector(`input[data-id="tiebreaker-result2-time"]`);
+
+        if (role1 && result1 && time1 && role2 && result2 && time2) {
+            matchData.tiebreaker = {
+                role1: role1.value,
+                result1: result1.value,
+                time1: time1.value,
+                role2: role2.value,
+                result2: result2.value,
+                time2: time2.value
+            };
+        } else {
+            console.error('Elements not found for tiebreaker');
+        }
+    }
+
+    localStorage.setItem('matchData', JSON.stringify(matchData));
+    console.log('Data saved:', matchData);
+}
+
+function loadSavedData(data) {
+    data.bos.forEach(bo => {
+        setBOData(bo.boId, bo.role1, bo.result1, bo.role2, bo.result2);
+    });
+
+    if (data.tiebreaker) {
+        setTiebreakerData(
+            data.tiebreaker.role1,
+            data.tiebreaker.result1,
+            data.tiebreaker.time1,
+            data.tiebreaker.role2,
+            data.tiebreaker.result2,
+            data.tiebreaker.time2
+        );
+    }
+
+    updateResults();
+}
+
+function displayRestoredData(data) {
+    let restoredDataContent = '';
+
+    data.bos.forEach(bo => {
+        const homeTeam = data.homeTeam;
+        const awayTeam = data.awayTeam;
+        restoredDataContent += `${bo.boId.toUpperCase()} 上半:\n`;
+        restoredDataContent += `${homeTeam}（${bo.role1}）结果（${bo.result1}）\n`;
+        restoredDataContent += `${bo.boId.toUpperCase()} 下半:\n`;
+        restoredDataContent += `${homeTeam}（${bo.role2}）结果（${bo.result2}）\n\n`;
+    });
+
+    if (data.tiebreaker) {
+        restoredDataContent += `加赛:\n`;
+        restoredDataContent += `${data.homeTeam}（${data.tiebreaker.role1}）用了${data.tiebreaker.time1}秒结果（${data.tiebreaker.result1}）\n`;
+        restoredDataContent += `${data.homeTeam}（${data.tiebreaker.role2}）用了${data.tiebreaker.time2}秒结果（${data.tiebreaker.result2}）\n`;
+    }
+
+    document.getElementById('restored-data-content').textContent = restoredDataContent;
+    document.getElementById('restored-data').style.display = 'block';
+}
+
+function setBOData(boId, role1, result1, role2, result2) {
+    const role1Select = document.querySelector(`select[data-result-id="${boId}-result1"]`);
+    const result1Select = document.querySelector(`select[data-id="${boId}-result1-home"]`);
+    const role2Select = document.querySelector(`select[data-result-id="${boId}-result2"]`);
+    const result2Select = document.querySelector(`select[data-id="${boId}-result2-home"]`);
+
+    if (role1Select && result1Select && role2Select && result2Select) {
+        role1Select.value = role1;
+        updateScoreOptions(result1Select, role1);
+        result1Select.value = result1;
+
+        role2Select.value = role2;
+        updateScoreOptions(result2Select, role2);
+        result2Select.value = result2;
+
+        // Trigger change events to update the UI
+        role1Select.dispatchEvent(new Event('change'));
+        result1Select.dispatchEvent(new Event('change'));
+        role2Select.dispatchEvent(new Event('change'));
+        result2Select.dispatchEvent(new Event('change'));
+    }
+}
+
+function setTiebreakerData(role1, result1, time1, role2, result2, time2) {
+    const role1Select = document.querySelector(`select[data-result-id="tiebreaker-result1"]`);
+    const result1Select = document.querySelector(`select[data-id="tiebreaker-result1-home"]`);
+    const time1Input = document.querySelector(`input[data-id="tiebreaker-result1-time"]`);
+    const role2Select = document.querySelector(`select[data-result-id="tiebreaker-result2"]`);
+    const result2Select = document.querySelector(`select[data-id="tiebreaker-result2-home"]`);
+    const time2Input = document.querySelector(`input[data-id="tiebreaker-result2-time"]`);
+
+    if (role1Select && result1Select && time1Input && role2Select && result2Select && time2Input) {
+        role1Select.value = role1;
+        updateScoreOptions(result1Select, role1);
+        result1Select.value = result1;
+        time1Input.value = time1;
+
+        role2Select.value = role2;
+        updateScoreOptions(result2Select, role2);
+        result2Select.value = result2;
+        time2Input.value = time2;
+
+        // Trigger change events to update the UI
+        role1Select.dispatchEvent(new Event('change'));
+        result1Select.dispatchEvent(new Event('change'));
+        time1Input.dispatchEvent(new Event('input'));
+        role2Select.dispatchEvent(new Event('change'));
+        result2Select.dispatchEvent(new Event('change'));
+        time2Input.dispatchEvent(new Event('input'));
+    }
+}
+
+// 监听用户更改选择事件，保存数据
+document.addEventListener('change', function(e) {
+    if (e.target && (e.target.classList.contains('role-select') || e.target.classList.contains('score-select') || e.target.classList.contains('time-input'))) {
+        saveData();
+    }
 });
 
 function createBO(id, homeTeam, awayTeam) {
@@ -92,7 +271,6 @@ function createBO(id, homeTeam, awayTeam) {
             updateResults();
         });
 
-        // 初始化分数选项和角色显示
         updateScoreOptions(document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-home"]`), select.value);
         document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`).textContent = select.value;
     });
@@ -160,7 +338,6 @@ function createTiebreaker(homeTeam, awayTeam) {
             updateResults();
         });
 
-        // 初始化分数选项和角色显示
         updateScoreOptions(document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-home"]`), select.value);
         document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`).textContent = select.value;
     });
@@ -278,13 +455,11 @@ function updateResults() {
         if (time) {
             const seconds = formatTimeToSeconds(time);
             document.querySelector(`span[data-id="${resultId}-time-display"]`).textContent = `${seconds}秒`;
-            // Update the score result with the seconds
             const scoreResult = document.querySelector(`span[data-id="${resultId}"]`).textContent;
             document.querySelector(`span[data-id="${resultId}"]`).textContent = `${scoreResult} (${seconds})`;
         }
     });
 
-    // 更新表格中的结果
     updateTableResults();
 }
 
