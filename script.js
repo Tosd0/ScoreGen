@@ -52,16 +52,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     populateSelectOptions(homeTeamSelect, schools);
-
-    // 更新客场队伍选项
-    homeTeamSelect.addEventListener('change', function() {
-        awayTeamSelect.innerHTML = '<option value="" disabled selected>请选择学校</option>';
-        awayTeamSelect.disabled = false;
-
-        const selectedSchool = homeTeamSelect.value;
-        const availableSchools = schools.filter(school => school !== selectedSchool);
-        populateSelectOptions(awayTeamSelect, availableSchools);
-    });
+    populateSelectOptions(awayTeamSelect, schools);
 
     document.getElementById('next-button').addEventListener('click', function() {
         const homeTeam = homeTeamSelect.value;
