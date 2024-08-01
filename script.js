@@ -1,22 +1,86 @@
 document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById('restore-button').addEventListener('click', restoreData);
-});
+    const schools = [
+        "北京市第十九中学",
+        "北京市中关村中学",
+        "BLC",
+        "RDL",
+        "北京市第八中学",
+        "DioDa",
+        "ZX",
+        "Wave",
+        "OvO",
+        "中国人民大学附属中学",
+        "清纯白毛小萝莉队",
+        "北京卫生职业学院",
+        "北京市和平街第一中学",
+        "北京市三里屯一中",
+        "北京师范大学实验中学丰台学校",
+        "北京市第三十五中学",
+        "清华附中朝阳学校",
+        "北京师范大学附属实验中学",
+        "北京教师进修学校附属实验学校",
+        "北京交通大学附属中学第二分校",
+        "北大附中朝阳未来学校",
+        "清华大学附属学校将台路校区",
+        "北京市第十二中学",
+        "清华大学附属中学",
+        "北京化工大学附属中学",
+        "北京师范大学燕化附属中学",
+        "潞河中学",
+        "北京市密云区第二中学",
+        "北京市第二中学通州校区",
+        "北京市人民大学附属中学第二分校",
+        "北京信息管理学校中关村校区",
+        "北京市第十八中学",
+        "不可一世的赌徒",
+        "北京市第二十二中学",
+        "北京市建华实验亦庄学校",
+        "QAQ"
+    ];
 
-document.getElementById('next-button').addEventListener('click', function() {
-    const homeTeam = document.getElementById('home-team').value;
-    const awayTeam = document.getElementById('away-team').value;
+    const homeTeamSelect = document.getElementById('home-team');
+    const awayTeamSelect = document.getElementById('away-team');
 
-    if (homeTeam && awayTeam) {
-        document.getElementById('input-stage').style.display = 'none';
-        document.getElementById('output-stage').style.display = 'block';
-        document.getElementById('match-title').textContent = `${homeTeam} vs ${awayTeam}`;
-        createBO('bo1', homeTeam, awayTeam);
-        createBO('bo2', homeTeam, awayTeam);
-        document.getElementById('add-bo').style.display = 'block';
-        saveData();
-    } else {
-        alert('请填写所有队伍名称');
+    // 初始化下拉框
+    function populateSelectOptions(selectElement, options) {
+        options.forEach(school => {
+            const option = document.createElement('option');
+            option.value = school;
+            option.textContent = school;
+            selectElement.appendChild(option);
+        });
     }
+
+    populateSelectOptions(homeTeamSelect, schools);
+
+    // 更新客场队伍选项
+    homeTeamSelect.addEventListener('change', function() {
+        awayTeamSelect.innerHTML = '<option value="" disabled selected>请选择学校</option>';
+        awayTeamSelect.disabled = false;
+
+        const selectedSchool = homeTeamSelect.value;
+        const availableSchools = schools.filter(school => school !== selectedSchool);
+        populateSelectOptions(awayTeamSelect, availableSchools);
+    });
+
+    document.getElementById('next-button').addEventListener('click', function() {
+        const homeTeam = homeTeamSelect.value;
+        const awayTeam = awayTeamSelect.value;
+
+        if (homeTeam && awayTeam) {
+            document.getElementById('input-stage').style.display = 'none';
+            document.getElementById('output-stage').style.display = 'block';
+            document.getElementById('match-title').textContent = `${homeTeam} vs ${awayTeam}`;
+            createBO('bo1', homeTeam, awayTeam);
+            createBO('bo2', homeTeam, awayTeam);
+            document.getElementById('add-bo').style.display = 'block';
+            saveData();
+        } else {
+            alert('请填写所有队伍名称');
+        }
+    });
+
+    document.getElementById('restore-button').addEventListener('click', restoreData);
 });
 
 let boCount = 2;
