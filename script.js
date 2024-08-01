@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('input-stage').style.display = 'none';
             document.getElementById('output-stage').style.display = 'block';
             document.getElementById('match-title').textContent = `${homeTeam} vs ${awayTeam}`;
+            document.getElementById('match-instructions').style.display = 'block';
             createBO('bo1', homeTeam, awayTeam);
             createBO('bo2', homeTeam, awayTeam);
             document.getElementById('add-bo').style.display = 'block';
