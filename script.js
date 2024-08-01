@@ -51,6 +51,11 @@ document.addEventListener("DOMContentLoaded", function() {
     function collectResults() {
         let resultString = '';
 
+        const homeTeam = document.getElementById('home-team').value;
+        const awayTeam = document.getElementById('away-team').value;
+
+        resultString += `${homeTeam} vs ${awayTeam};`;
+
         for (let i = 1; i <= 3; i++) {
             const result1 = document.getElementById(`bo${i}-result1`);
             const result2 = document.getElementById(`bo${i}-result2`);
