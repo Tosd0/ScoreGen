@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('next-button').addEventListener('click', function() {
         const homeTeam = homeTeamSelect.value;
         const awayTeam = awayTeamSelect.value;
-
+    
         if (homeTeam && awayTeam) {
             document.getElementById('input-stage').style.display = 'none';
             document.getElementById('output-stage').style.display = 'block';
@@ -71,6 +71,7 @@ document.addEventListener("DOMContentLoaded", function() {
             alert('请填写所有队伍名称');
         }
     });
+    
 
     document.getElementById('restore-button').addEventListener('click', restoreData);
 });
