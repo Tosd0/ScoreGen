@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('add-bo').style.display = 'block';
             saveData();
         } else {
-            alert('请填写所有队伍名称');
+            alert('请选择队伍');
         }
     });
     
@@ -246,7 +246,6 @@ function displayRestoredData(data) {
 
     data.bos.forEach(bo => {
         const homeTeam = data.homeTeam;
-        const awayTeam = data.awayTeam;
         restoredDataContent += `${bo.boId.toUpperCase()} 上半:\n`;
         restoredDataContent += `${homeTeam}（${bo.role1}）结果（${bo.result1}）\n`;
         restoredDataContent += `${bo.boId.toUpperCase()} 下半:\n`;
@@ -278,7 +277,6 @@ function setBOData(boId, role1, result1, role2, result2) {
         updateScoreOptions(result2Select, role2);
         result2Select.value = result2;
 
-        // Trigger change events to update the UI
         role1Select.dispatchEvent(new Event('change'));
         result1Select.dispatchEvent(new Event('change'));
         role2Select.dispatchEvent(new Event('change'));
@@ -305,7 +303,6 @@ function setTiebreakerData(role1, result1, time1, role2, result2, time2) {
         result2Select.value = result2;
         time2Input.value = time2;
 
-        // Trigger change events to update the UI
         role1Select.dispatchEvent(new Event('change'));
         result1Select.dispatchEvent(new Event('change'));
         time1Input.dispatchEvent(new Event('input'));
