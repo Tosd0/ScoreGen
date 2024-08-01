@@ -57,11 +57,12 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('next-button').addEventListener('click', function() {
         const homeTeam = homeTeamSelect.value;
         const awayTeam = awayTeamSelect.value;
-
+    
         if (homeTeam && awayTeam) {
             document.getElementById('input-stage').style.display = 'none';
             document.getElementById('output-stage').style.display = 'block';
             document.getElementById('match-title').textContent = `${homeTeam} vs ${awayTeam}`;
+            document.getElementById('match-instructions').style.display = 'block';
             createBO('bo1', homeTeam, awayTeam);
             createBO('bo2', homeTeam, awayTeam);
             document.getElementById('add-bo').style.display = 'block';
@@ -70,6 +71,7 @@ document.addEventListener("DOMContentLoaded", function() {
             alert('请填写所有队伍名称');
         }
     });
+    
 
     document.getElementById('restore-button').addEventListener('click', restoreData);
 });
