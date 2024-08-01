@@ -12,11 +12,15 @@
         <div id="input-stage">
             <div>
                 <label for="home-team">主场队伍：</label>
-                <input type="text" id="home-team">
+                <select id="home-team">
+                    <option value="" disabled selected>请选择学校</option>
+                </select>
             </div>
             <div>
                 <label for="away-team">客场队伍：</label>
-                <input type="text" id="away-team">
+                <select id="away-team" disabled>
+                    <option value="" disabled selected>请选择学校</option>
+                </select>
             </div>
             <button id="next-button">下一步</button>
             <button id="restore-button">恢复数据</button>
