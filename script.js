@@ -577,13 +577,16 @@ function clearHash() {
 }
 
 function formatTimeToSeconds(time) {
-    if (time.includes(':')) {
-        const [minutes, seconds] = time.split(':').map(Number);
+    const timeParts = time.split(/[:：]/);
+    
+    if (timeParts.length === 2) {
+        const [minutes, seconds] = timeParts.map(Number);
         return minutes * 60 + seconds;
     } else {
         return Number(time);
     }
 }
+
 
 function updateTableResults() {
     const bo1Result1 = document.querySelector('span[data-id="bo1-result1"]').textContent;
