@@ -3,23 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>比赛生成器</title>
+    <title>IVBL 赛果填写辅助工具</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            font-size: 14px;
+            gap: 20px;
+        }
+
+        footer img {
+            vertical-align: middle;
+        }
+
+        footer a {
+            text-decoration: none;
+            color: #000;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>比赛生成器</h1>
+        <h1>IVBL 赛果填写辅助工具</h1>
         <div id="input-stage">
             <div>
                 <label for="home-team">主场队伍：</label>
                 <select id="home-team">
-                    <option value="" disabled selected>请选择学校</option>
+                    <option value="" disabled selected>请选择主场队伍</option>
                 </select>
             </div>
             <div>
                 <label for="away-team">客场队伍：</label>
                 <select id="away-team">
-                    <option value="" disabled selected>请选择学校</option>
+                    <option value="" disabled selected>请选择客场队伍</option>
                 </select>
             </div>
             <button id="next-button">下一步</button>
@@ -63,6 +83,22 @@
             </div>
         </div>
     </div>
+
+    <footer>
+        <div>
+            <a href="https://github.com/Sevenyine/ScoreGen/" target="_blank">
+                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub logo" style="width:20px; height:20px;"> GitHub Repo
+            </a>
+        </div>
+        <div>
+            <a href="https://www.vercel.com/">
+                <img src="https://assets.vercel.com/image/upload/front/favicon/vercel/favicon.ico" alt="Vercel logo" style="width:20px; height:20px;"> Deployment
+            </a>
+        </div>
+        <div>v0.1.0 PROD</div>
+        <div>Author: Sevenyine & ChatGPT</div>
+    </footer>
+
     <script src="script.js"></script>
 </body>
 </html>
