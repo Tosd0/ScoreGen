@@ -5,26 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IVBL 赛果填写辅助工具</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        footer {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-            border-top: 1px solid #ccc;
-            font-size: 14px;
-            gap: 20px;
-        }
-
-        footer img {
-            vertical-align: middle;
-        }
-
-        footer a {
-            text-decoration: none;
-            color: #000;
-        }
-    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 <body>
@@ -43,8 +23,11 @@
                     <option value="" disabled selected>请选择客场队伍</option>
                 </select>
             </div>
-            <button id="next-button">下一步</button>
-            <button id="restore-button">恢复数据</button>
+            <div id="button-container">
+                <button id="document-button" onclick="window.location.href='./docs/document.html'">使用说明</button>
+                <button id="next-button">下一步</button>
+                <button id="restore-button">恢复数据</button>
+            </div>
         </div>
         <div id="output-stage" style="display:none;">
             <h2 id="match-title"></h2>
@@ -85,6 +68,7 @@
                     </tbody>
                 </table>
             </div>
+
             <!-- HASH -->
             <div id="hash-output" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; display:none;">
                 <strong>校验码：</strong>

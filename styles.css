@@ -1,3 +1,5 @@
+/* 原有样式 */
+
 body {
     font-family: Arial, sans-serif;
 }
@@ -29,7 +31,7 @@ button {
     width: 100%;
     margin: 10px 0;
     padding: 10px;
-    background-color: #4CAF50;
+    background-color: #f7cc6f;
     color: white;
     border: none;
     border-radius: 5px;
@@ -37,7 +39,7 @@ button {
 }
 
 button:hover {
-    background-color: #45a049;
+    background-color: #ec6c5c;
 }
 
 table {
@@ -53,4 +55,51 @@ table, th, td {
 th, td {
     padding: 10px;
     text-align: center;
+}
+
+footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    font-size: 14px;
+    gap: 20px;
+}
+
+footer img {
+    vertical-align: middle;
+}
+
+footer a {
+    text-decoration: none;
+    color: #000;
+}
+
+#button-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 20px;
+    flex-wrap: wrap; /* 当宽度不够时自动换行 */
+}
+
+#button-container button {
+    flex: 1 1 30%; /* 每个按钮占据行宽的30%，但在必要时允许换行 */
+    margin: 5px;
+    padding: 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#document-page {
+    display: none;
+    padding: 20px;
+    border: 1px solid #ccc;
+    margin-top: 20px;
+}
+
+#document-page img {
+    max-width: 100%;
+    height: auto;
 }
