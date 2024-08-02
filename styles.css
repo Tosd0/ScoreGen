@@ -99,7 +99,9 @@ footer a {
     margin-top: 20px;
 }
 
-#document-page img {
+img {
     max-width: 100%;
     height: auto;
+    display: block;
+    margin: 0 auto;
 }
