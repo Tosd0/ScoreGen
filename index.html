@@ -25,6 +25,7 @@
             color: #000;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -84,6 +85,12 @@
                     </tbody>
                 </table>
             </div>
+            <!-- HASH -->
+            <div id="hash-output" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; display:none;">
+                <strong>数据哈希值：</strong>
+                <span id="hash-value" style="word-wrap: break-word;"></span>
+            </div>
+            <button id="generate-hash">生成数据哈希值</button>
         </div>
     </div>
 

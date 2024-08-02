@@ -37,6 +37,54 @@ document.addEventListener("DOMContentLoaded", function() {
         "北京市建华实验亦庄学校",
         "QAQ"
     ];
+    
+    document.getElementById('generate-hash').addEventListener('click', function() {
+        const results = collectResults();
+        if (results) {
+            const hash = CryptoJS.SHA256(results).toString(CryptoJS.enc.Hex);
+            displayHash(hash);
+        } else {
+            alert('没有找到任何比赛结果数据。');
+        }
+    });
+
+    function collectResults() {
+        let resultString = '';
+
+        const homeTeam = document.getElementById('home-team').value;
+        const awayTeam = document.getElementById('away-team').value;
+
+        resultString += `${homeTeam} vs ${awayTeam};`;
+
+        for (let i = 1; i <= 3; i++) {
+            const result1 = document.getElementById(`bo${i}-result1`);
+            const result2 = document.getElementById(`bo${i}-result2`);
+
+            if (result1 && result1.style.display !== 'none') {
+                resultString += result1.textContent.trim() + ';';
+            }
+            if (result2 && result2.style.display !== 'none') {
+                resultString += result2.textContent.trim() + ';';
+            }
+        }
+
+        const tiebreakerResult1 = document.getElementById('tiebreaker-result1');
+        const tiebreakerResult2 = document.getElementById('tiebreaker-result2');
+
+        if (tiebreakerResult1 && tiebreakerResult1.style.display !== 'none') {
+            resultString += tiebreakerResult1.textContent.trim() + ';';
+        }
+        if (tiebreakerResult2 && tiebreakerResult2.style.display !== 'none') {
+            resultString += tiebreakerResult2.textContent.trim() + ';';
+        }
+
+        return resultString;
+    }
+
+    function displayHash(hash) {
+        document.getElementById('hash-value').textContent = hash;
+        document.getElementById('hash-output').style.display = 'block';
+    }
 
     const homeTeamSelect = document.getElementById('home-team');
     const awayTeamSelect = document.getElementById('away-team');
@@ -68,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('add-bo').style.display = 'block';
             saveData();
         } else {
-            alert('请填写所有队伍名称');
+            alert('请选择队伍');
         }
     });
     
@@ -171,6 +219,7 @@ function saveData() {
 
     localStorage.setItem('matchData', JSON.stringify(matchData));
     console.log('Data saved:', matchData);
+    clearHash();
 }
 
 function loadSavedData(data) {
@@ -197,7 +246,6 @@ function displayRestoredData(data) {
 
     data.bos.forEach(bo => {
         const homeTeam = data.homeTeam;
-        const awayTeam = data.awayTeam;
         restoredDataContent += `${bo.boId.toUpperCase()} 上半:\n`;
         restoredDataContent += `${homeTeam}（${bo.role1}）结果（${bo.result1}）\n`;
         restoredDataContent += `${bo.boId.toUpperCase()} 下半:\n`;
@@ -229,7 +277,6 @@ function setBOData(boId, role1, result1, role2, result2) {
         updateScoreOptions(result2Select, role2);
         result2Select.value = result2;
 
-        // Trigger change events to update the UI
         role1Select.dispatchEvent(new Event('change'));
         result1Select.dispatchEvent(new Event('change'));
         role2Select.dispatchEvent(new Event('change'));
@@ -256,7 +303,6 @@ function setTiebreakerData(role1, result1, time1, role2, result2, time2) {
         result2Select.value = result2;
         time2Input.value = time2;
 
-        // Trigger change events to update the UI
         role1Select.dispatchEvent(new Event('change'));
         result1Select.dispatchEvent(new Event('change'));
         time1Input.dispatchEvent(new Event('input'));
@@ -266,7 +312,6 @@ function setTiebreakerData(role1, result1, time1, role2, result2, time2) {
     }
 }
 
-// 监听用户更改选择事件，保存数据
 document.addEventListener('change', function(e) {
     if (e.target && (e.target.classList.contains('role-select') || e.target.classList.contains('score-select') || e.target.classList.contains('time-input'))) {
         saveData();
@@ -518,16 +563,30 @@ function updateResults() {
     });
 
     updateTableResults();
+    clearHash();
+}
+
+function clearHash() {
+    const hashOutput = document.getElementById('hash-output');
+    const hashValue = document.getElementById('hash-value');
+
+    if (hashOutput.style.display !== 'none') {
+        hashValue.textContent = '数据已更改，请重新生成哈希。';
+        hashOutput.style.display = 'block';
+    }
 }
 
 function formatTimeToSeconds(time) {
-    if (time.includes(':')) {
-        const [minutes, seconds] = time.split(':').map(Number);
+    const timeParts = time.split(/[:：]/);
+    
+    if (timeParts.length === 2) {
+        const [minutes, seconds] = timeParts.map(Number);
         return minutes * 60 + seconds;
     } else {
         return Number(time);
     }
 }
+
 
 function updateTableResults() {
     const bo1Result1 = document.querySelector('span[data-id="bo1-result1"]').textContent;
