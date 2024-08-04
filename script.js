@@ -558,7 +558,7 @@ function updateResults() {
             const seconds = formatTimeToSeconds(time);
             document.querySelector(`span[data-id="${resultId}-time-display"]`).textContent = `${seconds}秒`;
             const scoreResult = document.querySelector(`span[data-id="${resultId}"]`).textContent;
-            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${scoreResult} (${seconds})`;
+            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${scoreResult}(${seconds})`;
         }
     });
 
