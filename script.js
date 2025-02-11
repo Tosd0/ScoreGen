@@ -1,3 +1,6 @@
+// 定义全局变量，用于OBS捕获窗口引用
+let obsWindow = null;
+
 document.addEventListener("DOMContentLoaded", function() {
     const schools = [
         "北京市第十九中学",
@@ -45,6 +48,31 @@ document.addEventListener("DOMContentLoaded", function() {
             displayHash(hash);
         } else {
             alert('没有找到任何比赛结果数据。');
+        }
+    });
+
+    // 新增：绑定“打开OBS捕获窗口”按钮事件
+    document.getElementById('open-obs-window').addEventListener('click', function() {
+        if (!obsWindow || obsWindow.closed) {
+            obsWindow = window.open("", "obsWindow", "width=400,height=300");
+            obsWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>OBS捕获窗口</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #fff; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #000; padding: 4px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="obs-results"></div>
+</body>
+</html>`);
+            obsWindow.document.close();
+        } else {
+            obsWindow.focus();
         }
     });
 
@@ -587,7 +615,6 @@ function formatTimeToSeconds(time) {
     }
 }
 
-
 function updateTableResults() {
     const bo1Result1 = document.querySelector('span[data-id="bo1-result1"]').textContent;
     const bo1Result2 = document.querySelector('span[data-id="bo1-result2"]').textContent;
@@ -609,5 +636,16 @@ function updateTableResults() {
     if (tiebreakerResult1 && tiebreakerResult2) {
         document.getElementById('tiebreaker-result1').textContent = tiebreakerResult1;
         document.getElementById('tiebreaker-result2').textContent = tiebreakerResult2;
+    }
+    updateOBSWindow();
+    clearHash();
+}
+
+function updateOBSWindow() {
+    if (obsWindow && !obsWindow.closed) {
+        const resultsTable = document.getElementById('results-table');
+        if (resultsTable) {
+            obsWindow.document.getElementById('obs-results').innerHTML = resultsTable.outerHTML;
+        }
     }
 }

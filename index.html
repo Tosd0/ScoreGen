@@ -1,99 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IVBL 赛果填写辅助工具</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://unpkg.com/@vercel/analytics/dist/vercel-analytics.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IVBL 赛果填写辅助工具</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://unpkg.com/@vercel/analytics/dist/vercel-analytics.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>IVBL 赛果填写辅助工具</h1>
-        <div id="input-stage">
-            <div>
-                <label for="home-team">主场队伍：</label>
-                <select id="home-team">
-                    <option value="" disabled selected>请选择主场队伍</option>
-                </select>
-            </div>
-            <div>
-                <label for="away-team">客场队伍：</label>
-                <select id="away-team">
-                    <option value="" disabled selected>请选择客场队伍</option>
-                </select>
-            </div>
-            <div id="button-container">
-                <button id="document-button" onclick="window.location.href='./docs/document.html'">使用说明</button>
-                <button id="next-button">下一步</button>
-                <button id="restore-button">恢复数据</button>
-            </div>
-        </div>
-        <div id="output-stage" style="display:none;">
-            <h2 id="match-title"></h2>
-            <p id="match-instructions" style="font-size: 20px; color: #ff6161; display:none; text-align: center;">
-                填写表格中的比赛队伍时，请直接复制上面标题一行的文字
-            </p>
-            <div id="restored-data" style="display:none; border: 2px solid #000; padding: 10px; margin-bottom: 20px;">
-                <h3>上次填写的数据：</h3>
-                <pre id="restored-data-content"></pre>
-            </div>
-            <div id="matches"></div>
-            <button id="add-bo" style="display:none;">添加BO3</button>
-            <button id="add-tiebreaker" style="display:none;">添加加赛</button>
-            <div id="results">
-                <h3>比赛结果</h3>
-                <table id="results-table">
-                    <thead>
-                        <tr id="results-header">
-                            <th>BO1</th>
-                            <th>BO2</th>
-                            <th id="bo3-header" style="display:none;">BO3</th>
-                            <th id="tiebreaker-header" style="display:none;">加赛</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr id="results-row1">
-                            <td id="bo1-result1"></td>
-                            <td id="bo2-result1"></td>
-                            <td id="bo3-result1" style="display:none;"></td>
-                            <td id="tiebreaker-result1" style="display:none;"></td>
-                        </tr>
-                        <tr id="results-row2">
-                            <td id="bo1-result2"></td>
-                            <td id="bo2-result2"></td>
-                            <td id="bo3-result2" style="display:none;"></td>
-                            <td id="tiebreaker-result2" style="display:none;"></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- HASH -->
-            <div id="hash-output" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; display:none;">
-                <strong>校验码：</strong>
-                <span id="hash-value" style="word-wrap: break-word;"></span>
-            </div>
-            <button id="generate-hash">生成校验码</button>
-        </div>
+  <div class="container">
+    <h1>IVBL 赛果填写辅助工具</h1>
+    <div id="input-stage">
+      <div>
+        <label for="home-team">主场队伍：</label>
+        <select id="home-team">
+          <option value="" disabled selected>请选择主场队伍</option>
+        </select>
+      </div>
+      <div>
+        <label for="away-team">客场队伍：</label>
+        <select id="away-team">
+          <option value="" disabled selected>请选择客场队伍</option>
+        </select>
+      </div>
+      <div id="button-container">
+        <button id="document-button" onclick="window.location.href='./docs/document.html'">使用说明</button>
+        <button id="next-button">下一步</button>
+        <button id="restore-button">恢复数据</button>
+      </div>
     </div>
+    <div id="output-stage" style="display:none;">
+      <h2 id="match-title"></h2>
+      <p id="match-instructions" style="font-size: 20px; color: #ff6161; display:none; text-align: center;">
+        填写表格中的比赛队伍时，请直接复制上面标题一行的文字
+      </p>
+      <div id="restored-data" style="display:none; border: 2px solid #000; padding: 10px; margin-bottom: 20px;">
+        <h3>上次填写的数据：</h3>
+        <pre id="restored-data-content"></pre>
+      </div>
+      <div id="matches"></div>
+      <button id="add-bo" style="display:none;">添加BO3</button>
+      <button id="add-tiebreaker" style="display:none;">添加加赛</button>
+      <div id="results">
+        <h3>比赛结果</h3>
+        <table id="results-table">
+          <thead>
+            <tr id="results-header">
+              <th>BO1</th>
+              <th>BO2</th>
+              <th id="bo3-header" style="display:none;">BO3</th>
+              <th id="tiebreaker-header" style="display:none;">加赛</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="results-row1">
+              <td id="bo1-result1"></td>
+              <td id="bo2-result1"></td>
+              <td id="bo3-result1" style="display:none;"></td>
+              <td id="tiebreaker-result1" style="display:none;"></td>
+            </tr>
+            <tr id="results-row2">
+              <td id="bo1-result2"></td>
+              <td id="bo2-result2"></td>
+              <td id="bo3-result2" style="display:none;"></td>
+              <td id="tiebreaker-result2" style="display:none;"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-    <footer>
-        <div>
-            <a href="https://github.com/Sevenyine/ScoreGen/" target="_blank">
-                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub logo" style="width:20px; height:20px;"> GitHub Repo
-            </a>
-        </div>
-        <div>
-            <a href="https://www.vercel.com/">
-                <img src="https://assets.vercel.com/image/upload/front/favicon/vercel/favicon.ico" alt="Vercel logo" style="width:20px; height:20px;"> Deployment
-            </a>
-        </div>
-        <div>v1.1.1 PROD</div>
-        <div>Author: Sevenyine & ChatGPT</div>
-    </footer>
+      <!-- HASH -->
+      <div id="hash-output" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; display:none;">
+        <strong>校验码：</strong>
+        <span id="hash-value" style="word-wrap: break-word;"></span>
+      </div>
+      <button id="generate-hash">生成校验码</button>
+      <!-- 新增：OBS捕获窗口按钮 -->
+      <button id="open-obs-window">打开OBS捕获窗口</button>
+    </div>
+  </div>
 
-    <script src="script.js"></script>
+  <footer>
+    <div>
+      <a href="https://github.com/Sevenyine/ScoreGen/" target="_blank">
+        <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub logo" style="width:20px; height:20px;"> GitHub Repo
+      </a>
+    </div>
+    <div>
+      <a href="https://www.vercel.com/">
+        <img src="https://assets.vercel.com/image/upload/front/favicon/vercel/favicon.ico" alt="Vercel logo" style="width:20px; height:20px;"> Deployment
+      </a>
+    </div>
+    <div>v2.0.0 Dev</div>
+    <div>Author: Sevenyine & ChatGPT</div>
+  </footer>
+
+  <script src="script.js"></script>
 </body>
 </html>
