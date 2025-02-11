@@ -204,14 +204,18 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('restore-button').addEventListener('click', restoreData);
 });
 
-let boCount = 2;
+let boCount = 2; // 初始已创建bo1和bo2
 
 document.getElementById('add-bo').addEventListener('click', function() {
     boCount++;
     createBO(`bo${boCount}`, document.getElementById('main-team').value, document.getElementById('sub-team').value);
-    document.getElementById(`bo${boCount}-header`).style.display = 'table-cell';
-    document.getElementById(`bo${boCount}-result1`).style.display = 'table-cell';
-    document.getElementById(`bo${boCount}-result2`).style.display = 'table-cell';
+    // 显示对应的表格列（如果表格存在）
+    if (document.getElementById(`bo${boCount}-header`)) {
+        document.getElementById(`bo${boCount}-header`).style.display = 'table-cell';
+        document.getElementById(`bo${boCount}-result1`).style.display = 'table-cell';
+        document.getElementById(`bo${boCount}-result2`).style.display = 'table-cell';
+    }
+    // 添加BO3后切换按钮
     if (boCount === 3) {
         document.getElementById('add-bo').style.display = 'none';
         document.getElementById('add-tiebreaker').style.display = 'block';
@@ -221,9 +225,12 @@ document.getElementById('add-bo').addEventListener('click', function() {
 
 document.getElementById('add-tiebreaker').addEventListener('click', function() {
     createTiebreaker(document.getElementById('main-team').value, document.getElementById('sub-team').value);
-    document.getElementById('tiebreaker-header').style.display = 'table-cell';
-    document.getElementById('tiebreaker-result1').style.display = 'table-cell';
-    document.getElementById('tiebreaker-result2').style.display = 'table-cell';
+    // 显示对应的表格列（如果表格存在）
+    if (document.getElementById('tiebreaker-header')) {
+        document.getElementById('tiebreaker-header').style.display = 'table-cell';
+        document.getElementById('tiebreaker-result1').style.display = 'table-cell';
+        document.getElementById('tiebreaker-result2').style.display = 'table-cell';
+    }
     document.getElementById('add-tiebreaker').style.display = 'none';
     saveData();
 });
