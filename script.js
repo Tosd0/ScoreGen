@@ -722,7 +722,7 @@ function updateResultTableNew() {
         <table id="obs-new-table" border="1" cellspacing="0" cellpadding="5" style="width:100%; margin:0 auto;">
             <thead>
                 <tr>
-                    <th rowspan="2">学校</th>`;
+                    <th rowspan="2">学校/队伍</th>`;
     games.forEach(game => {
         tableHTML += `<th colspan="2">${game.label}</th>`;
     });
