@@ -1,7 +1,8 @@
-/* 原有样式 */
+@import url('./zhuziawan/result.css');
 
-body {
-    font-family: Arial, sans-serif;
+* {
+    font-family: '筑紫A丸ゴシック by 宁静之雨', Arial, sans-serif;
+    font-weight: 400;
 }
 
 .container {
