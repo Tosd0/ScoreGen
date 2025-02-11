@@ -51,10 +51,10 @@ document.addEventListener("DOMContentLoaded", function() {
     function collectResults() {
         let resultString = '';
 
-        const homeTeam = document.getElementById('home-team').value;
-        const awayTeam = document.getElementById('away-team').value;
+        const mainTeam = document.getElementById('main-team').value;
+        const subTeam = document.getElementById('sub-team').value;
 
-        resultString += `${homeTeam} vs ${awayTeam};`;
+        resultString += `${mainTeam} vs ${subTeam};`;
 
         for (let i = 1; i <= 3; i++) {
             const result1 = document.getElementById(`bo${i}-result1`);
@@ -86,8 +86,8 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('hash-output').style.display = 'block';
     }
 
-    const homeTeamSelect = document.getElementById('home-team');
-    const awayTeamSelect = document.getElementById('away-team');
+    const mainTeamSelect = document.getElementById('main-team');
+    const subTeamSelect = document.getElementById('sub-team');
 
     // 初始化下拉框
     function populateSelectOptions(selectElement, options) {
@@ -99,20 +99,20 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    populateSelectOptions(homeTeamSelect, schools);
-    populateSelectOptions(awayTeamSelect, schools);
+    populateSelectOptions(mainTeamSelect, schools);
+    populateSelectOptions(subTeamSelect, schools);
 
     document.getElementById('next-button').addEventListener('click', function() {
-        const homeTeam = homeTeamSelect.value;
-        const awayTeam = awayTeamSelect.value;
+        const mainTeam = mainTeamSelect.value;
+        const subTeam = subTeamSelect.value;
     
-        if (homeTeam && awayTeam) {
+        if (mainTeam && subTeam) {
             document.getElementById('input-stage').style.display = 'none';
             document.getElementById('output-stage').style.display = 'block';
-            document.getElementById('match-title').textContent = `${homeTeam} vs ${awayTeam}`;
+            document.getElementById('match-title').textContent = `${mainTeam} vs ${subTeam}`;
             document.getElementById('match-instructions').style.display = 'block';
-            createBO('bo1', homeTeam, awayTeam);
-            createBO('bo2', homeTeam, awayTeam);
+            createBO('bo1', mainTeam, subTeam);
+            createBO('bo2', mainTeam, subTeam);
             document.getElementById('add-bo').style.display = 'block';
             saveData();
         } else {
@@ -128,7 +128,7 @@ let boCount = 2;
 
 document.getElementById('add-bo').addEventListener('click', function() {
     boCount++;
-    createBO(`bo${boCount}`, document.getElementById('home-team').value, document.getElementById('away-team').value);
+    createBO(`bo${boCount}`, document.getElementById('main-team').value, document.getElementById('sub-team').value);
     document.getElementById(`bo${boCount}-header`).style.display = 'table-cell';
     document.getElementById(`bo${boCount}-result1`).style.display = 'table-cell';
     document.getElementById(`bo${boCount}-result2`).style.display = 'table-cell';
@@ -140,7 +140,7 @@ document.getElementById('add-bo').addEventListener('click', function() {
 });
 
 document.getElementById('add-tiebreaker').addEventListener('click', function() {
-    createTiebreaker(document.getElementById('home-team').value, document.getElementById('away-team').value);
+    createTiebreaker(document.getElementById('main-team').value, document.getElementById('sub-team').value);
     document.getElementById('tiebreaker-header').style.display = 'table-cell';
     document.getElementById('tiebreaker-result1').style.display = 'table-cell';
     document.getElementById('tiebreaker-result2').style.display = 'table-cell';
@@ -153,8 +153,8 @@ function restoreData() {
     if (savedData) {
         const data = JSON.parse(savedData);
         console.log('Restoring data:', data);
-        document.getElementById('home-team').value = data.homeTeam;
-        document.getElementById('away-team').value = data.awayTeam;
+        document.getElementById('main-team').value = data.mainTeam;
+        document.getElementById('sub-team').value = data.subTeam;
         document.getElementById('next-button').click();
         setTimeout(() => {
             loadSavedData(data);
@@ -167,8 +167,8 @@ function restoreData() {
 
 function saveData() {
     const matchData = {
-        homeTeam: document.getElementById('home-team').value,
-        awayTeam: document.getElementById('away-team').value,
+        mainTeam: document.getElementById('main-team').value,
+        subTeam: document.getElementById('sub-team').value,
         bos: [],
         tiebreaker: null,
     };
@@ -177,9 +177,9 @@ function saveData() {
     boDivs.forEach(boDiv => {
         const boId = boDiv.id;
         const role1 = document.querySelector(`select[data-result-id="${boId}-result1"]`);
-        const result1 = document.querySelector(`select[data-id="${boId}-result1-home"]`);
+        const result1 = document.querySelector(`select[data-id="${boId}-result1-main"]`);
         const role2 = document.querySelector(`select[data-result-id="${boId}-result2"]`);
-        const result2 = document.querySelector(`select[data-id="${boId}-result2-home"]`);
+        const result2 = document.querySelector(`select[data-id="${boId}-result2-main"]`);
 
         if (role1 && result1 && role2 && result2) {
             matchData.bos.push({
@@ -197,10 +197,10 @@ function saveData() {
     const tiebreakerDiv = document.getElementById('tiebreaker');
     if (tiebreakerDiv) {
         const role1 = document.querySelector(`select[data-result-id="tiebreaker-result1"]`);
-        const result1 = document.querySelector(`select[data-id="tiebreaker-result1-home"]`);
+        const result1 = document.querySelector(`select[data-id="tiebreaker-result1-main"]`);
         const time1 = document.querySelector(`input[data-id="tiebreaker-result1-time"]`);
         const role2 = document.querySelector(`select[data-result-id="tiebreaker-result2"]`);
-        const result2 = document.querySelector(`select[data-id="tiebreaker-result2-home"]`);
+        const result2 = document.querySelector(`select[data-id="tiebreaker-result2-main"]`);
         const time2 = document.querySelector(`input[data-id="tiebreaker-result2-time"]`);
 
         if (role1 && result1 && time1 && role2 && result2 && time2) {
@@ -245,17 +245,17 @@ function displayRestoredData(data) {
     let restoredDataContent = '';
 
     data.bos.forEach(bo => {
-        const homeTeam = data.homeTeam;
+        const mainTeam = data.mainTeam;
         restoredDataContent += `${bo.boId.toUpperCase()} 上半:\n`;
-        restoredDataContent += `${homeTeam}（${bo.role1}）结果（${bo.result1}）\n`;
+        restoredDataContent += `${mainTeam}（${bo.role1}）结果（${bo.result1}）\n`;
         restoredDataContent += `${bo.boId.toUpperCase()} 下半:\n`;
-        restoredDataContent += `${homeTeam}（${bo.role2}）结果（${bo.result2}）\n\n`;
+        restoredDataContent += `${mainTeam}（${bo.role2}）结果（${bo.result2}）\n\n`;
     });
 
     if (data.tiebreaker) {
         restoredDataContent += `加赛:\n`;
-        restoredDataContent += `${data.homeTeam}（${data.tiebreaker.role1}）用了${data.tiebreaker.time1}秒结果（${data.tiebreaker.result1}）\n`;
-        restoredDataContent += `${data.homeTeam}（${data.tiebreaker.role2}）用了${data.tiebreaker.time2}秒结果（${data.tiebreaker.result2}）\n`;
+        restoredDataContent += `${data.mainTeam}（${data.tiebreaker.role1}）用了${data.tiebreaker.time1}秒结果（${data.tiebreaker.result1}）\n`;
+        restoredDataContent += `${data.mainTeam}（${data.tiebreaker.role2}）用了${data.tiebreaker.time2}秒结果（${data.tiebreaker.result2}）\n`;
     }
 
     document.getElementById('restored-data-content').textContent = restoredDataContent;
@@ -264,9 +264,9 @@ function displayRestoredData(data) {
 
 function setBOData(boId, role1, result1, role2, result2) {
     const role1Select = document.querySelector(`select[data-result-id="${boId}-result1"]`);
-    const result1Select = document.querySelector(`select[data-id="${boId}-result1-home"]`);
+    const result1Select = document.querySelector(`select[data-id="${boId}-result1-main"]`);
     const role2Select = document.querySelector(`select[data-result-id="${boId}-result2"]`);
-    const result2Select = document.querySelector(`select[data-id="${boId}-result2-home"]`);
+    const result2Select = document.querySelector(`select[data-id="${boId}-result2-main"]`);
 
     if (role1Select && result1Select && role2Select && result2Select) {
         role1Select.value = role1;
@@ -286,10 +286,10 @@ function setBOData(boId, role1, result1, role2, result2) {
 
 function setTiebreakerData(role1, result1, time1, role2, result2, time2) {
     const role1Select = document.querySelector(`select[data-result-id="tiebreaker-result1"]`);
-    const result1Select = document.querySelector(`select[data-id="tiebreaker-result1-home"]`);
+    const result1Select = document.querySelector(`select[data-id="tiebreaker-result1-main"]`);
     const time1Input = document.querySelector(`input[data-id="tiebreaker-result1-time"]`);
     const role2Select = document.querySelector(`select[data-result-id="tiebreaker-result2"]`);
-    const result2Select = document.querySelector(`select[data-id="tiebreaker-result2-home"]`);
+    const result2Select = document.querySelector(`select[data-id="tiebreaker-result2-main"]`);
     const time2Input = document.querySelector(`input[data-id="tiebreaker-result2-time"]`);
 
     if (role1Select && result1Select && time1Input && role2Select && result2Select && time2Input) {
@@ -318,35 +318,35 @@ document.addEventListener('change', function(e) {
     }
 });
 
-function createBO(id, homeTeam, awayTeam) {
+function createBO(id, mainTeam, subTeam) {
     const boDiv = document.createElement('div');
     boDiv.id = id;
     boDiv.innerHTML = `
         <h3>${id.toUpperCase()}</h3>
         <div>
-            ${homeTeam}（<select class="role-select" data-home-team="${homeTeam}" data-away-team="${awayTeam}" data-result-id="${id}-result1">
+            ${mainTeam}（<select class="role-select" data-main-team="${mainTeam}" data-sub-team="${subTeam}" data-result-id="${id}-result1">
                 <option value="未选择">未选择</option>
                 <option value="监管">监管</option>
                 <option value="求生">求生</option>
             </select>）
-            游戏结果：<select class="score-select" data-id="${id}-result1-home"></select>
+            游戏结果：<select class="score-select" data-id="${id}-result1-main"></select>
         </div>
         <div>
-            <strong>${id.toUpperCase()} 上半：</strong>${homeTeam}（<span class="role-display" data-id="${id}-result1-role"></span>）<span class="score-display" data-id="${id}-result1-home-display"></span>，
-            ${homeTeam}积<span class="score-points" data-id="${id}-result1-home-points"></span>分，${awayTeam}积<span class="score-points" data-id="${id}-result1-away-points"></span>分。
+            <strong>${id.toUpperCase()} 上半：</strong>${mainTeam}（<span class="role-display" data-id="${id}-result1-role"></span>）<span class="score-display" data-id="${id}-result1-main-display"></span>，
+            ${mainTeam}积<span class="score-points" data-id="${id}-result1-main-points"></span>分，${subTeam}积<span class="score-points" data-id="${id}-result1-sub-points"></span>分。
             <br>比分为：<span class="score-result" data-id="${id}-result1"></span>。
         </div>
         <div>
-            ${homeTeam}（<select class="role-select" data-home-team="${homeTeam}" data-away-team="${awayTeam}" data-result-id="${id}-result2">
+            ${mainTeam}（<select class="role-select" data-main-team="${mainTeam}" data-sub-team="${subTeam}" data-result-id="${id}-result2">
                 <option value="未选择">未选择</option>
                 <option value="求生">求生</option>
                 <option value="监管">监管</option>
             </select>）
-            游戏结果：<select class="score-select" data-id="${id}-result2-home"></select>
+            游戏结果：<select class="score-select" data-id="${id}-result2-main"></select>
         </div>
         <div>
-            <strong>${id.toUpperCase()} 下半：</strong>${homeTeam}（<span class="role-display" data-id="${id}-result2-role"></span>）<span class="score-display" data-id="${id}-result2-home-display"></span>，
-            ${homeTeam}积<span class="score-points" data-id="${id}-result2-home-points"></span>分，${awayTeam}积<span class="score-points" data-id="${id}-result2-away-points"></span>分。
+            <strong>${id.toUpperCase()} 下半：</strong>${mainTeam}（<span class="role-display" data-id="${id}-result2-role"></span>）<span class="score-display" data-id="${id}-result2-main-display"></span>，
+            ${mainTeam}积<span class="score-points" data-id="${id}-result2-main-points"></span>分，${subTeam}积<span class="score-points" data-id="${id}-result2-sub-points"></span>分。
             <br>比分为：<span class="score-result" data-id="${id}-result2"></span>。
         </div>
     `;
@@ -356,7 +356,7 @@ function createBO(id, homeTeam, awayTeam) {
     Array.from(selects).forEach((select, index) => {
         select.addEventListener('change', function() {
             const role = select.value;
-            const scoreSelect = document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-home"]`);
+            const scoreSelect = document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-main"]`);
             updateScoreOptions(scoreSelect, role);
 
             const roleDisplay = document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`);
@@ -364,7 +364,7 @@ function createBO(id, homeTeam, awayTeam) {
 
             const nextSelect = selects[(index + 1) % 2];
             nextSelect.value = role === '监管' ? '求生' : '监管';
-            const nextScoreSelect = document.querySelector(`select[data-id="${nextSelect.getAttribute('data-result-id')}-home"]`);
+            const nextScoreSelect = document.querySelector(`select[data-id="${nextSelect.getAttribute('data-result-id')}-main"]`);
             updateScoreOptions(nextScoreSelect, nextSelect.value);
 
             const nextRoleDisplay = document.querySelector(`span[data-id="${nextSelect.getAttribute('data-result-id')}-role"]`);
@@ -373,7 +373,7 @@ function createBO(id, homeTeam, awayTeam) {
             updateResults();
         });
 
-        updateScoreOptions(document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-home"]`), select.value);
+        updateScoreOptions(document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-main"]`), select.value);
         document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`).textContent = select.value;
     });
 
@@ -383,37 +383,37 @@ function createBO(id, homeTeam, awayTeam) {
     });
 }
 
-function createTiebreaker(homeTeam, awayTeam) {
+function createTiebreaker(mainTeam, subTeam) {
     const tiebreakerDiv = document.createElement('div');
     tiebreakerDiv.id = 'tiebreaker';
     tiebreakerDiv.innerHTML = `
         <h3>加赛</h3>
         <div>
-            ${homeTeam}（<select class="role-select" data-home-team="${homeTeam}" data-away-team="${awayTeam}" data-result-id="tiebreaker-result1">
+            ${mainTeam}（<select class="role-select" data-main-team="${mainTeam}" data-sub-team="${subTeam}" data-result-id="tiebreaker-result1">
                 <option value="未选择">未选择</option>
                 <option value="监管">监管</option>
                 <option value="求生">求生</option>
             </select>）
-            游戏结果：<select class="score-select" data-id="tiebreaker-result1-home"></select>
+            游戏结果：<select class="score-select" data-id="tiebreaker-result1-main"></select>
             <input type="text" class="time-input" placeholder="比赛时间" data-id="tiebreaker-result1-time">
         </div>
         <div>
-            <strong>加赛：</strong>${homeTeam}（<span class="role-display" data-id="tiebreaker-result1-role"></span>）用了<span class="time-display" data-id="tiebreaker-result1-time-display"></span><span class="score-display" data-id="tiebreaker-result1-home-display"></span>，
-            ${homeTeam}积<span class="score-points" data-id="tiebreaker-result1-home-points"></span>分，${awayTeam}积<span class="score-points" data-id="tiebreaker-result1-away-points"></span>分。
+            <strong>加赛：</strong>${mainTeam}（<span class="role-display" data-id="tiebreaker-result1-role"></span>）用了<span class="time-display" data-id="tiebreaker-result1-time-display"></span><span class="score-display" data-id="tiebreaker-result1-main-display"></span>，
+            ${mainTeam}积<span class="score-points" data-id="tiebreaker-result1-main-points"></span>分，${subTeam}积<span class="score-points" data-id="tiebreaker-result1-sub-points"></span>分。
             <br>比分为：<span class="score-result" data-id="tiebreaker-result1"></span>。
         </div>
         <div>
-            ${homeTeam}（<select class="role-select" data-home-team="${homeTeam}" data-away-team="${awayTeam}" data-result-id="tiebreaker-result2">
+            ${mainTeam}（<select class="role-select" data-main-team="${mainTeam}" data-sub-team="${subTeam}" data-result-id="tiebreaker-result2">
                 <option value="未选择">未选择</option>
                 <option value="求生">求生</option>
                 <option value="监管">监管</option>
             </select>）
-            游戏结果：<select class="score-select" data-id="tiebreaker-result2-home"></select>
+            游戏结果：<select class="score-select" data-id="tiebreaker-result2-main"></select>
             <input type="text" class="time-input" placeholder="比赛时间" data-id="tiebreaker-result2-time">
         </div>
         <div>
-            <strong>加赛：</strong>${homeTeam}（<span class="role-display" data-id="tiebreaker-result2-role"></span>）用了<span class="time-display" data-id="tiebreaker-result2-time-display"></span><span class="score-display" data-id="tiebreaker-result2-home-display"></span>，
-            ${homeTeam}积<span class="score-points" data-id="tiebreaker-result2-home-points"></span>分，${awayTeam}积<span class="score-points" data-id="tiebreaker-result2-away-points"></span>分。
+            <strong>加赛：</strong>${mainTeam}（<span class="role-display" data-id="tiebreaker-result2-role"></span>）用了<span class="time-display" data-id="tiebreaker-result2-time-display"></span><span class="score-display" data-id="tiebreaker-result2-main-display"></span>，
+            ${mainTeam}积<span class="score-points" data-id="tiebreaker-result2-main-points"></span>分，${subTeam}积<span class="score-points" data-id="tiebreaker-result2-sub-points"></span>分。
             <br>比分为：<span class="score-result" data-id="tiebreaker-result2"></span>。
         </div>
     `;
@@ -423,7 +423,7 @@ function createTiebreaker(homeTeam, awayTeam) {
     Array.from(selects).forEach((select, index) => {
         select.addEventListener('change', function() {
             const role = select.value;
-            const scoreSelect = document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-home"]`);
+            const scoreSelect = document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-main"]`);
             updateScoreOptions(scoreSelect, role);
 
             const roleDisplay = document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`);
@@ -431,7 +431,7 @@ function createTiebreaker(homeTeam, awayTeam) {
 
             const nextSelect = selects[(index + 1) % 2];
             nextSelect.value = role === '监管' ? '求生' : '监管';
-            const nextScoreSelect = document.querySelector(`select[data-id="${nextSelect.getAttribute('data-result-id')}-home"]`);
+            const nextScoreSelect = document.querySelector(`select[data-id="${nextSelect.getAttribute('data-result-id')}-main"]`);
             updateScoreOptions(nextScoreSelect, nextSelect.value);
 
             const nextRoleDisplay = document.querySelector(`span[data-id="${nextSelect.getAttribute('data-result-id')}-role"]`);
@@ -440,7 +440,7 @@ function createTiebreaker(homeTeam, awayTeam) {
             updateResults();
         });
 
-        updateScoreOptions(document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-home"]`), select.value);
+        updateScoreOptions(document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-main"]`), select.value);
         document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`).textContent = select.value;
     });
 
@@ -480,73 +480,73 @@ function updateResults() {
     const selects = document.getElementsByClassName('role-select');
     Array.from(selects).forEach(select => {
         const resultId = select.getAttribute('data-result-id');
-        const homeScoreOption = document.querySelector(`select[data-id="${resultId}-home"]`).value;
+        const mainScoreOption = document.querySelector(`select[data-id="${resultId}-main"]`).value;
         const role = select.value;
 
-        let homeScore, awayScore;
+        let mainScore, subScore;
 
-        if (role === '未选择' || homeScoreOption === '未选择') {
-            document.querySelector(`span[data-id="${resultId}-home-display"]`).textContent = '';
-            document.querySelector(`span[data-id="${resultId}-home-points"]`).textContent = '';
-            document.querySelector(`span[data-id="${resultId}-away-points"]`).textContent = '';
+        if (role === '未选择' || mainScoreOption === '未选择') {
+            document.querySelector(`span[data-id="${resultId}-main-display"]`).textContent = '';
+            document.querySelector(`span[data-id="${resultId}-main-points"]`).textContent = '';
+            document.querySelector(`span[data-id="${resultId}-sub-points"]`).textContent = '';
             document.querySelector(`span[data-id="${resultId}-role"]`).textContent = '';
-            document.querySelector(`span[data-id="${resultId}"]`).textContent = '比赛结果尚未填写。';
+            document.querySelector(`span[data-id="${resultId}"]`).textContent = '-';
         } else if (role === '监管') {
-            switch (homeScoreOption) {
+            switch (mainScoreOption) {
                 case '4':
-                    homeScore = 5;
-                    awayScore = 0;
+                    mainScore = 5;
+                    subScore = 0;
                     break;
                 case '3':
-                    homeScore = 3;
-                    awayScore = 1;
+                    mainScore = 3;
+                    subScore = 1;
                     break;
                 case '2':
-                    homeScore = 2;
-                    awayScore = 2;
+                    mainScore = 2;
+                    subScore = 2;
                     break;
                 case '1':
-                    homeScore = 1;
-                    awayScore = 3;
+                    mainScore = 1;
+                    subScore = 3;
                     break;
                 case '0':
-                    homeScore = 0;
-                    awayScore = 5;
+                    mainScore = 0;
+                    subScore = 5;
                     break;
             }
-            document.querySelector(`span[data-id="${resultId}-home-display"]`).textContent = `${homeScoreOption}杀`;
-            document.querySelector(`span[data-id="${resultId}-home-points"]`).textContent = homeScore;
-            document.querySelector(`span[data-id="${resultId}-away-points"]`).textContent = awayScore;
+            document.querySelector(`span[data-id="${resultId}-main-display"]`).textContent = `${mainScoreOption}杀`;
+            document.querySelector(`span[data-id="${resultId}-main-points"]`).textContent = mainScore;
+            document.querySelector(`span[data-id="${resultId}-sub-points"]`).textContent = subScore;
             document.querySelector(`span[data-id="${resultId}-role"]`).textContent = role;
-            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${homeScore}:${awayScore}`;
+            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${mainScore}:${subScore}`;
         } else {
-            switch (homeScoreOption) {
+            switch (mainScoreOption) {
                 case '4':
-                    homeScore = 5;
-                    awayScore = 0;
+                    mainScore = 5;
+                    subScore = 0;
                     break;
                 case '3':
-                    homeScore = 3;
-                    awayScore = 1;
+                    mainScore = 3;
+                    subScore = 1;
                     break;
                 case '2':
-                    homeScore = 2;
-                    awayScore = 2;
+                    mainScore = 2;
+                    subScore = 2;
                     break;
                 case '1':
-                    homeScore = 1;
-                    awayScore = 3;
+                    mainScore = 1;
+                    subScore = 3;
                     break;
                 case '0':
-                    homeScore = 0;
-                    awayScore = 5;
+                    mainScore = 0;
+                    subScore = 5;
                     break;
             }
-            document.querySelector(`span[data-id="${resultId}-home-display"]`).textContent = `${homeScoreOption}跑`;
-            document.querySelector(`span[data-id="${resultId}-home-points"]`).textContent = homeScore;
-            document.querySelector(`span[data-id="${resultId}-away-points"]`).textContent = awayScore;
+            document.querySelector(`span[data-id="${resultId}-main-display"]`).textContent = `${mainScoreOption}跑`;
+            document.querySelector(`span[data-id="${resultId}-main-points"]`).textContent = mainScore;
+            document.querySelector(`span[data-id="${resultId}-sub-points"]`).textContent = subScore;
             document.querySelector(`span[data-id="${resultId}-role"]`).textContent = role;
-            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${homeScore}-${awayScore}`;
+            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${mainScore}-${subScore}`;
         }
     });
 
