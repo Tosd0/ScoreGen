@@ -54,22 +54,74 @@ document.addEventListener("DOMContentLoaded", function() {
     // 新增：绑定“打开OBS捕获窗口”按钮事件
     document.getElementById('open-obs-window').addEventListener('click', function() {
         if (!obsWindow || obsWindow.closed) {
-            obsWindow = window.open("", "obsWindow", "width=600,height=400");
+            obsWindow = window.open("", "obsWindow", "width=1300,height=280");
             obsWindow.document.write(`<!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>OBS捕获窗口</title>
-      <!-- 引入与主页面相同的CSS -->
-      <link rel="stylesheet" href="styles.css">
-      <style>
-        body { margin: 0; }
-      </style>
-    </head>
-    <body>
-      <div id="obs-results"></div>
-    </body>
-    </html>`);
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>OBS捕获窗口</title>
+  <!-- 引入与主页面相同的CSS（如果有的话） -->
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      position: relative;
+    }
+    /* 背景图 */
+    body {
+      background: url('https://raw.githubusercontent.com/Tosd0/ScoreGen/main/84501739283894_.pic.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    /* 独立的遮罩层 */
+    #background-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);  /* 50% 不透明的黑色 */
+      z-index: 1;
+    }
+    /* OBS 结果容器：内容层 */
+    #obs-results {
+      position: relative;
+      z-index: 2; /* 确保内容在遮罩层之上 */
+      display: flex;
+      justify-content: center;  /* 水平居中 */
+      align-items: center;      /* 垂直居中 */
+      height: 100vh;
+      box-sizing: border-box;
+      padding: 25px;            /* 上下左右均留25px */
+    }
+    /* 表格样式：取消 border-collapse 以便阴影生效，并添加阴影效果 */
+    /* 表格整体设置 */
+    #obs-results table {
+        margin: 0 auto;
+        border-collapse: separate; /* 使用 separate 以确保 box-shadow 生效 */
+        border: 1px solid #fff;      /* 表格边框为白色 */
+        color: #fff;                /* 表格内文字为白色 */
+        background-color: transparent;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);  /* 轻微白色阴影/荧光效果 */
+    }
+
+    /* 针对表头和单元格的额外设置 */
+    #obs-results table th,
+    #obs-results table td {
+        border: 1px solid #fff;      /* 单元格边框为白色 */
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);  /* 文字添加白色荧光效果 */
+        background-color: transparent; /* 透明背景 */
+        padding: 5px;                /* 适当内边距 */
+    }
+  </style>
+</head>
+<body>
+  <!-- 遮罩层 -->
+  <div id="background-overlay"></div>
+  <!-- OBS 结果显示区域 -->
+  <div id="obs-results"></div>
+</body>
+</html>`);
             obsWindow.document.close();
         } else {
             obsWindow.focus();
@@ -590,7 +642,8 @@ function updateResults() {
         }
     });
 
-    updateTableResults();
+    // 将原来的updateTableResults()替换为调用更新新表格的函数
+    updateResultTableNew();
     clearHash();
 }
 
@@ -615,30 +668,102 @@ function formatTimeToSeconds(time) {
     }
 }
 
-function updateTableResults() {
-    const bo1Result1 = document.querySelector('span[data-id="bo1-result1"]').textContent;
-    const bo1Result2 = document.querySelector('span[data-id="bo1-result2"]').textContent;
-    const bo2Result1 = document.querySelector('span[data-id="bo2-result1"]').textContent;
-    const bo2Result2 = document.querySelector('span[data-id="bo2-result2"]').textContent;
-    const bo3Result1 = document.querySelector('span[data-id="bo3-result1"]')?.textContent || '';
-    const bo3Result2 = document.querySelector('span[data-id="bo3-result2"]')?.textContent || '';
-    const tiebreakerResult1 = document.querySelector('span[data-id="tiebreaker-result1"]')?.textContent || '';
-    const tiebreakerResult2 = document.querySelector('span[data-id="tiebreaker-result2"]')?.textContent || '';
 
-    document.getElementById('bo1-result1').textContent = bo1Result1;
-    document.getElementById('bo1-result2').textContent = bo1Result2;
-    document.getElementById('bo2-result1').textContent = bo2Result1;
-    document.getElementById('bo2-result2').textContent = bo2Result2;
-    if (bo3Result1 && bo3Result2) {
-        document.getElementById('bo3-result1').textContent = bo3Result1;
-        document.getElementById('bo3-result2').textContent = bo3Result2;
+function updateResultTableNew() {
+    // 定义各局对应的id与标签
+    const games = [
+       { id: "bo1", label: "GAME1" },
+       { id: "bo2", label: "GAME2" },
+       { id: "bo3", label: "GAME3" },
+       { id: "tiebreaker", label: "TIEBREAKER" }
+    ];
+
+    // 内部函数：获取某局某半场的显示结果
+    function getHalfDisplay(gameId, half) {
+        const roleSelect = document.querySelector(`select[data-result-id="${gameId}-${half}"]`);
+        const scoreSelect = document.querySelector(`select[data-id="${gameId}-${half}-main"]`);
+        if (!roleSelect || !scoreSelect) {
+            return { home: '', away: '' };
+        }
+        const role = roleSelect.value;
+        const option = scoreSelect.value;
+        if (option === '未选择' || role === '未选择') {
+            return { home: '', away: '' };
+        }
+        let mainScore, subScore;
+        switch (option) {
+            case '4':
+                mainScore = 5; subScore = 0;
+                break;
+            case '3':
+                mainScore = 3; subScore = 1;
+                break;
+            case '2':
+                mainScore = 2; subScore = 2;
+                break;
+            case '1':
+                mainScore = 1; subScore = 3;
+                break;
+            case '0':
+                mainScore = 0; subScore = 5;
+                break;
+            default:
+                mainScore = 0; subScore = 0;
+        }
+        // 主场显示的角色前缀：如果主场选择“监管”则为 H，否则为 S
+        const homeAbbr = role === '监管' ? 'H' : (role === '求生' ? 'S' : '');
+        // 客场角色则为相反的
+        const awayAbbr = role === '监管' ? 'S' : (role === '求生' ? 'H' : '');
+        return { home: homeAbbr + mainScore, away: awayAbbr + subScore };
     }
-    if (tiebreakerResult1 && tiebreakerResult2) {
-        document.getElementById('tiebreaker-result1').textContent = tiebreakerResult1;
-        document.getElementById('tiebreaker-result2').textContent = tiebreakerResult2;
+
+    // 构造表格HTML字符串，包裹在容器 div 中，容器左右有25px的 padding
+    let tableHTML = `<div style="padding: 0 25px; overflow-x:auto;"> 
+        <table id="obs-new-table" border="1" cellspacing="0" cellpadding="5" style="width:100%; margin:0 auto;">
+            <thead>
+                <tr>
+                    <th rowspan="2">学校</th>`;
+    games.forEach(game => {
+        tableHTML += `<th colspan="2">${game.label}</th>`;
+    });
+    tableHTML += `</tr><tr>`;
+    games.forEach(game => {
+        tableHTML += `<th>FIRST HALF</th><th>SECOND HALF</th>`;
+    });
+    tableHTML += `</tr></thead><tbody>`;
+    
+    // 获取主客场学校名称
+    const mainTeam = document.getElementById('main-team').value || '主场学校';
+    const subTeam = document.getElementById('sub-team').value || '客场学校';
+    
+    // 主场数据行
+    tableHTML += `<tr><td>${mainTeam}</td>`;
+    games.forEach(game => {
+        const firstHalf = getHalfDisplay(game.id, 'result1').home;
+        const secondHalf = getHalfDisplay(game.id, 'result2').home;
+        tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
+    });
+    tableHTML += `</tr>`;
+    
+    // 客场数据行
+    tableHTML += `<tr><td>${subTeam}</td>`;
+    games.forEach(game => {
+        const firstHalf = getHalfDisplay(game.id, 'result1').away;
+        const secondHalf = getHalfDisplay(game.id, 'result2').away;
+        tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
+    });
+    tableHTML += `</tr>`;
+    
+    tableHTML += `</tbody></table></div>`;
+    
+    // 将新表格放入页面中 id 为 "results" 的容器内（请确保 HTML 中存在此容器）
+    const resultsContainer = document.getElementById('results');
+    if (resultsContainer) {
+        resultsContainer.innerHTML = tableHTML;
     }
+    
+    // 同步更新 OBS 捕获窗口中的内容
     updateOBSWindow();
-    clearHash();
 }
 
 function updateOBSWindow() {
