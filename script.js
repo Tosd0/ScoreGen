@@ -679,10 +679,10 @@ function formatTimeToSeconds(time) {
 function updateResultTableNew() {
     // 定义各局对应的id与标签
     const games = [
-       { id: "bo1", label: "GAME1" },
-       { id: "bo2", label: "GAME2" },
-       { id: "bo3", label: "GAME3" },
-       { id: "tiebreaker", label: "TIEBREAKER" }
+        { id: "bo1", label: "GAME1" },
+        { id: "bo2", label: "GAME2" },
+        { id: "bo3", label: "GAME3" },
+        { id: "tiebreaker", label: "TIEBREAKER" }
     ];
 
     // 内部函数：获取某局某半场的显示结果
@@ -690,13 +690,24 @@ function updateResultTableNew() {
         const roleSelect = document.querySelector(`select[data-result-id="${gameId}-${half}"]`);
         const scoreSelect = document.querySelector(`select[data-id="${gameId}-${half}-main"]`);
         if (!roleSelect || !scoreSelect) {
-            return { home: '', away: '' };
+            return { main: '', sub: '' };
         }
         const role = roleSelect.value;
         const option = scoreSelect.value;
-        if (option === '未选择' || role === '未选择') {
-            return { home: '', away: '' };
+        
+        let time = '';
+        // 仅处理加赛的时间
+        if (gameId === 'tiebreaker') {
+            const timeInput = document.querySelector(`input[data-id="${gameId}-${half}-time"]`);
+            if (timeInput && timeInput.value) {
+                time = `(${timeInput.value})`; // 直接显示原始输入
+            }
         }
+
+        if (option === '未选择' || role === '未选择') {
+            return { main: '', sub: '' };
+        }
+
         let mainScore, subScore;
         switch (option) {
             case '4':
@@ -717,19 +728,25 @@ function updateResultTableNew() {
             default:
                 mainScore = 0; subScore = 0;
         }
-        // 主场显示的角色前缀：如果主场选择“监管”则为 H，否则为 S
-        const homeAbbr = role === '监管' ? 'H' : (role === '求生' ? 'S' : '');
-        // 客场角色则为相反的
-        const awayAbbr = role === '监管' ? 'S' : (role === '求生' ? 'H' : '');
-        return { home: homeAbbr + mainScore, away: awayAbbr + subScore };
+
+        // 主场显示的角色前缀
+        const mainAbbr = role === '监管' ? 'H' : (role === '求生' ? 'S' : '');
+        const subAbbr = role === '监管' ? 'S' : (role === '求生' ? 'H' : '');
+        
+        return {
+            main: mainAbbr + mainScore + time, // 例如 S2(3:54)
+            sub: subAbbr + subScore + time    // 例如 H3(2:30)
+        };
     }
 
-    // 构造表格HTML字符串，包裹在容器 div 中，容器左右有25px的 padding
+    // 构造表格HTML
     let tableHTML = `<div style="padding: 0 25px; overflow-x:auto;"> 
         <table id="obs-new-table" border="1" cellspacing="0" cellpadding="5" style="width:100%; margin:0 auto;">
             <thead>
                 <tr>
                     <th rowspan="2">学校/队伍</th>`;
+    
+    // 表头
     games.forEach(game => {
         tableHTML += `<th colspan="2">${game.label}</th>`;
     });
@@ -739,37 +756,37 @@ function updateResultTableNew() {
     });
     tableHTML += `</tr></thead><tbody>`;
     
-    // 获取主客场学校名称
+    // 数据行
     const mainTeam = document.getElementById('main-team').value || '主场学校';
     const subTeam = document.getElementById('sub-team').value || '客场学校';
     
-    // 主场数据行
+    // 主场行
     tableHTML += `<tr><td>${mainTeam}</td>`;
     games.forEach(game => {
-        const firstHalf = getHalfDisplay(game.id, 'result1').home;
-        const secondHalf = getHalfDisplay(game.id, 'result2').home;
+        const firstHalf = getHalfDisplay(game.id, 'result1').main;
+        const secondHalf = getHalfDisplay(game.id, 'result2').main;
         tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
     });
     tableHTML += `</tr>`;
     
-    // 客场数据行
+    // 客场行
     tableHTML += `<tr><td>${subTeam}</td>`;
     games.forEach(game => {
-        const firstHalf = getHalfDisplay(game.id, 'result1').away;
-        const secondHalf = getHalfDisplay(game.id, 'result2').away;
+        const firstHalf = getHalfDisplay(game.id, 'result1').sub;
+        const secondHalf = getHalfDisplay(game.id, 'result2').sub;
         tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
     });
     tableHTML += `</tr>`;
     
     tableHTML += `</tbody></table></div>`;
     
-    // 将新表格放入页面中 id 为 "results" 的容器内（请确保 HTML 中存在此容器）
+    // 更新显示
     const resultsContainer = document.getElementById('results');
     if (resultsContainer) {
         resultsContainer.innerHTML = tableHTML;
     }
     
-    // 同步更新 OBS 捕获窗口中的内容
+    // 同步OBS窗口
     updateOBSWindow();
 }
 
