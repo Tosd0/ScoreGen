@@ -54,22 +54,22 @@ document.addEventListener("DOMContentLoaded", function() {
     // 新增：绑定“打开OBS捕获窗口”按钮事件
     document.getElementById('open-obs-window').addEventListener('click', function() {
         if (!obsWindow || obsWindow.closed) {
-            obsWindow = window.open("", "obsWindow", "width=400,height=300");
+            obsWindow = window.open("", "obsWindow", "width=600,height=400");
             obsWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>OBS捕获窗口</title>
-  <style>
-    body { margin: 0; font-family: sans-serif; background: #fff; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #000; padding: 4px; text-align: center; }
-  </style>
-</head>
-<body>
-  <div id="obs-results"></div>
-</body>
-</html>`);
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>OBS捕获窗口</title>
+      <!-- 引入与主页面相同的CSS -->
+      <link rel="stylesheet" href="styles.css">
+      <style>
+        body { margin: 0; }
+      </style>
+    </head>
+    <body>
+      <div id="obs-results"></div>
+    </body>
+    </html>`);
             obsWindow.document.close();
         } else {
             obsWindow.focus();
@@ -643,9 +643,9 @@ function updateTableResults() {
 
 function updateOBSWindow() {
     if (obsWindow && !obsWindow.closed) {
-        const resultsTable = document.getElementById('results-table');
-        if (resultsTable) {
-            obsWindow.document.getElementById('obs-results').innerHTML = resultsTable.outerHTML;
+        const resultsDiv = document.getElementById('results');
+        if (resultsDiv) {
+            obsWindow.document.getElementById('obs-results').innerHTML = resultsDiv.outerHTML;
         }
     }
 }
