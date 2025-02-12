@@ -8,16 +8,6 @@ document.addEventListener("DOMContentLoaded", function() {
         "<联>上古神兽",
         "北大附中朝阳未来学校"
     ];
-    
-    document.getElementById('generate-hash').addEventListener('click', function() {
-        const results = collectResults();
-        if (results) {
-            const hash = CryptoJS.SHA256(results).toString(CryptoJS.enc.Hex);
-            displayHash(hash);
-        } else {
-            alert('没有找到任何比赛结果数据。');
-        }
-    });
 
     // 新增：绑定“打开OBS捕获窗口”按钮事件
     document.getElementById('open-obs-window').addEventListener('click', function() {
@@ -94,44 +84,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    function collectResults() {
-        let resultString = '';
-
-        const mainTeam = document.getElementById('main-team').value;
-        const subTeam = document.getElementById('sub-team').value;
-
-        resultString += `${mainTeam} vs ${subTeam};`;
-
-        for (let i = 1; i <= 3; i++) {
-            const result1 = document.getElementById(`bo${i}-result1`);
-            const result2 = document.getElementById(`bo${i}-result2`);
-
-            if (result1 && result1.style.display !== 'none') {
-                resultString += result1.textContent.trim() + ';';
-            }
-            if (result2 && result2.style.display !== 'none') {
-                resultString += result2.textContent.trim() + ';';
-            }
-        }
-
-        const tiebreakerResult1 = document.getElementById('tiebreaker-result1');
-        const tiebreakerResult2 = document.getElementById('tiebreaker-result2');
-
-        if (tiebreakerResult1 && tiebreakerResult1.style.display !== 'none') {
-            resultString += tiebreakerResult1.textContent.trim() + ';';
-        }
-        if (tiebreakerResult2 && tiebreakerResult2.style.display !== 'none') {
-            resultString += tiebreakerResult2.textContent.trim() + ';';
-        }
-
-        return resultString;
-    }
-
-    function displayHash(hash) {
-        document.getElementById('hash-value').textContent = hash;
-        document.getElementById('hash-output').style.display = 'block';
-    }
-
     const mainTeamSelect = document.getElementById('main-team');
     const subTeamSelect = document.getElementById('sub-team');
 
@@ -165,7 +117,6 @@ document.addEventListener("DOMContentLoaded", function() {
             alert('请选择队伍');
         }
     });
-    
 
     document.getElementById('restore-button').addEventListener('click', restoreData);
 });
@@ -175,13 +126,11 @@ let boCount = 2; // 初始已创建bo1和bo2
 document.getElementById('add-bo').addEventListener('click', function() {
     boCount++;
     createBO(`bo${boCount}`, document.getElementById('main-team').value, document.getElementById('sub-team').value);
-    // 显示对应的表格列（如果表格存在）
     if (document.getElementById(`bo${boCount}-header`)) {
         document.getElementById(`bo${boCount}-header`).style.display = 'table-cell';
         document.getElementById(`bo${boCount}-result1`).style.display = 'table-cell';
         document.getElementById(`bo${boCount}-result2`).style.display = 'table-cell';
     }
-    // 添加BO3后切换按钮
     if (boCount === 3) {
         document.getElementById('add-bo').style.display = 'none';
         document.getElementById('add-tiebreaker').style.display = 'block';
@@ -191,7 +140,6 @@ document.getElementById('add-bo').addEventListener('click', function() {
 
 document.getElementById('add-tiebreaker').addEventListener('click', function() {
     createTiebreaker(document.getElementById('main-team').value, document.getElementById('sub-team').value);
-    // 显示对应的表格列（如果表格存在）
     if (document.getElementById('tiebreaker-header')) {
         document.getElementById('tiebreaker-header').style.display = 'table-cell';
         document.getElementById('tiebreaker-result1').style.display = 'table-cell';
@@ -242,8 +190,6 @@ function saveData() {
                 role2: role2.value,
                 result2: result2.value
             });
-        } else {
-            console.error(`Elements not found for ${boId}`);
         }
     });
 
@@ -265,14 +211,11 @@ function saveData() {
                 result2: result2.value,
                 time2: time2.value
             };
-        } else {
-            console.error('Elements not found for tiebreaker');
         }
     }
 
     localStorage.setItem('matchData', JSON.stringify(matchData));
     console.log('Data saved:', matchData);
-    clearHash();
 }
 
 function loadSavedData(data) {
@@ -452,7 +395,7 @@ function createTiebreaker(mainTeam, subTeam) {
         </div>
         <div>
             <strong>加赛：</strong>${mainTeam}（<span class="role-display" data-id="tiebreaker-result1-role"></span>）用了<span class="time-display" data-id="tiebreaker-result1-time-display"></span><span class="score-display" data-id="tiebreaker-result1-main-display"></span>，
-            ${mainTeam}积<span class="score-points" data-id="tiebreaker-result1-main-points"></span>分，${subTeam}积<span class="score-points" data-id="tiebreaker-result1-sub-points"></span>分。
+            ${mainTeam}积<span class            score-points" data-id="tiebreaker-result1-main-points"></span>分，${subTeam}积<span class="score-points" data-id="tiebreaker-result1-sub-points"></span>分。
             <br>比分为：<span class="score-result" data-id="tiebreaker-result1"></span>。
         </div>
         <div>
@@ -615,19 +558,8 @@ function updateResults() {
         }
     });
 
-    // 将原来的updateTableResults()替换为调用更新新表格的函数
+    // 更新新表格
     updateResultTableNew();
-    clearHash();
-}
-
-function clearHash() {
-    const hashOutput = document.getElementById('hash-output');
-    const hashValue = document.getElementById('hash-value');
-
-    if (hashOutput.style.display !== 'none') {
-        hashValue.textContent = '数据已更改，请重新生成哈希。';
-        hashOutput.style.display = 'block';
-    }
 }
 
 function formatTimeToSeconds(time) {
@@ -640,7 +572,6 @@ function formatTimeToSeconds(time) {
         return Number(time);
     }
 }
-
 
 function updateResultTableNew() {
     // 定义各局对应的id与标签
