@@ -36,12 +36,11 @@ document.addEventListener("DOMContentLoaded", function() {
       margin: 0;
       position: relative;
     }
-    /* 背景图 */
     body {
-      background: url('https://raw.githubusercontent.com/Tosd0/ScoreGen/main/84501739283894_.pic.jpg') no-repeat center center fixed;
+      background: url('https://raw.githubusercontent.com/Tosd0/ScoreGen/main/resource/OBS_Table_Background.png') no-repeat center center fixed;
       background-size: cover;
     }
-    /* 独立的遮罩层 */
+    /* 遮罩层 */
     #background-overlay {
       position: absolute;
       top: 0;
@@ -62,24 +61,23 @@ document.addEventListener("DOMContentLoaded", function() {
       box-sizing: border-box;
       padding: 25px;            /* 上下左右均留25px */
     }
-    /* 表格样式：取消 border-collapse 以便阴影生效，并添加阴影效果 */
     /* 表格整体设置 */
     #obs-results table {
         margin: 0 auto;
-        border-collapse: separate; /* 使用 separate 以确保 box-shadow 生效 */
-        border: 1px solid #fff;      /* 表格边框为白色 */
-        color: #fff;                /* 表格内文字为白色 */
+        border-collapse: separate;
+        border: 1px solid #fff;
+        color: #fff;
         background-color: transparent;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);  /* 轻微白色阴影/荧光效果 */
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
     }
 
     /* 针对表头和单元格的额外设置 */
     #obs-results table th,
     #obs-results table td {
-        border: 1px solid #fff;      /* 单元格边框为白色 */
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);  /* 文字添加白色荧光效果 */
-        background-color: transparent; /* 透明背景 */
-        padding: 5px;                /* 适当内边距 */
+        border: 1px solid #fff;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        background-color: transparent;
+        padding: 5px;
     }
   </style>
 </head>
