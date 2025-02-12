@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function() {
       position: relative;
     }
     body {
-      background: url('https://raw.githubusercontent.com/Tosd0/ScoreGen/main/resource/OBS_Table_Background.png') no-repeat center center fixed;
+      background: url('https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png') no-repeat center center fixed;
       background-size: cover;
     }
     /* 遮罩层 */
