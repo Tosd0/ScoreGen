@@ -727,7 +727,15 @@ function updateOBSWindow() {
           // 添加OBS专用样式
         obsWindow.document.head.innerHTML += `
         <style>
-            .match-header, .big-score, .small-score, .intermission-alert {
+            .role-note {
+                color: #ffeb3b !important;
+                text-shadow: 0 0 5px rgba(255,235,59,0.8) !important;
+            }
+            .intermission-alert {
+                color: #ffeb3b !important;
+                text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
+            }
+            .match-header, .big-score, .small-score {
                 color: #fff !important;
                 text-shadow: 0 0 10px rgba(255,255,255,0.8) !important;
             }
