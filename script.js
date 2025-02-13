@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // 新增：绑定“打开OBS捕获窗口”按钮事件
     document.getElementById('open-obs-window').addEventListener('click', function() {
         if (!obsWindow || obsWindow.closed) {
-            obsWindow = window.open("", "obsWindow", "width=1300,height=360");
+            obsWindow = window.open("", "obsWindow", "width=1300,height=400");
             obsWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
