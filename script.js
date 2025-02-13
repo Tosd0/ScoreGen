@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // 新增：绑定“打开OBS捕获窗口”按钮事件
     document.getElementById('open-obs-window').addEventListener('click', function() {
         if (!obsWindow || obsWindow.closed) {
-            obsWindow = window.open("", "obsWindow", "width=1300,height=280");
+            obsWindow = window.open("", "obsWindow", "width=1300,height=360");
             obsWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
@@ -634,7 +634,7 @@ function updateResultTableNew() {
         tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
     });
     tableHTML += `</tr></tbody></table>
-        <div style="font-size: 12px; text-align: center; margin-top: 5px;" class="role-note">H为监管，S为求生</div>
+        <div style="color: #ffeb3b; font-size: 12px; text-align: center; margin-top: 5px;" class="role-note">H为监管 S为求生</div>
     </div>`;
 
     const resultsContainer = document.getElementById('results');
