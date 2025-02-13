@@ -106,3 +106,21 @@ img {
     display: block;
     margin: 0 auto;
 }
+  /* 新增样式 */
+.control-btn {
+    padding: 8px 16px;
+    margin: 0 5px;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid #fff;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.control-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+.highlight {
+    background-color: #ffeb3b;
+    color: #000 !important;
+    text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
+}

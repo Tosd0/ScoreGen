@@ -42,33 +42,14 @@
       <div id="matches"></div>
       <button id="add-bo" style="display:none;">添加BO3</button>
       <button id="add-tiebreaker" style="display:none;">添加加赛</button>
-      <div id="results">
-        <h3>比赛结果</h3>
-        <table id="results-table">
-          <thead>
-            <tr id="results-header">
-              <th>BO1</th>
-              <th>BO2</th>
-              <th id="bo3-header" style="display:none;">BO3</th>
-              <th id="tiebreaker-header" style="display:none;">加赛</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr id="results-row1">
-              <td id="bo1-result1"></td>
-              <td id="bo2-result1"></td>
-              <td id="bo3-result1" style="display:none;"></td>
-              <td id="tiebreaker-result1" style="display:none;"></td>
-            </tr>
-            <tr id="results-row2">
-              <td id="bo1-result2"></td>
-              <td id="bo2-result2"></td>
-              <td id="bo3-result2" style="display:none;"></td>
-              <td id="tiebreaker-result2" style="display:none;"></td>
-            </tr>
-          </tbody>
-        </table>
+
+      <div id="match-controls" style="margin: 10px 0;">
+          <button id="toggle-intermission">进入场间</button>
+          <button id="toggle-match-end">比赛结束</button>
       </div>
+
+      <div id="results">
+        </div>
 
       <button id="open-obs-window">打开OBS捕获窗口</button>
     </div>

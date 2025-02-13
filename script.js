@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('next-button').addEventListener('click', function() {
         const mainTeam = mainTeamSelect.value;
         const subTeam = subTeamSelect.value;
-    
+
         if (mainTeam && subTeam) {
             document.getElementById('input-stage').style.display = 'none';
             document.getElementById('output-stage').style.display = 'block';
@@ -121,6 +121,10 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     document.getElementById('restore-button').addEventListener('click', restoreData);
+
+    // 绑定按钮事件
+    document.getElementById('toggle-intermission').addEventListener('click', toggleIntermission);
+    document.getElementById('toggle-match-end').addEventListener('click', toggleMatchEnd);
 });
 
 let boCount = 2; // 初始已创建bo1和bo2
@@ -397,7 +401,7 @@ function createTiebreaker(mainTeam, subTeam) {
         </div>
         <div>
             <strong>加赛：</strong>${mainTeam}（<span class="role-display" data-id="tiebreaker-result1-role"></span>）用了<span class="time-display" data-id="tiebreaker-result1-time-display"></span><span class="score-display" data-id="tiebreaker-result1-main-display"></span>，
-            ${mainTeam}积<span class            score-points" data-id="tiebreaker-result1-main-points"></span>分，${subTeam}积<span class="score-points" data-id="tiebreaker-result1-sub-points"></span>分。
+            ${mainTeam}积<span class="score-points" data-id="tiebreaker-result1-main-points"></span>分，${subTeam}积<span class="score-points" data-id="tiebreaker-result1-sub-points"></span>分。
             <br>比分为：<span class="score-result" data-id="tiebreaker-result1"></span>。
         </div>
         <div>
@@ -566,7 +570,7 @@ function updateResults() {
 
 function formatTimeToSeconds(time) {
     const timeParts = time.split(/[:：]/);
-    
+
     if (timeParts.length === 2) {
         const [minutes, seconds] = timeParts.map(Number);
         return minutes * 60 + seconds;
@@ -582,10 +586,11 @@ function updateResultTableNew() {
 
     // 构造标题和大分小分
     const headerHTML = `
-        <div style="text-align: center; margin-bottom: 10px;">
+        <div class="match-header" style="text-align: center; margin-bottom: 10px;">
             <h2 style="margin: 0; font-size: 28px;">${mainTeam} vs ${subTeam}</h2>
-            <div style="font-size: 24px; margin: 5px 0;">大分 ${bigScoreHome}:${bigScoreAway}</div>
-            <div style="font-size: 20px; margin: 5px 0;">小分 ${smallScoreHome}:${smallScoreAway}</div>
+            <div class="big-score" style="font-size: 24px; margin: 5px 0;">大分 ${bigScoreHome}:${bigScoreAway}</div>
+            <div class="small-score" style="font-size: 20px; margin: 5px 0;">小分 ${smallScoreHome}:${smallScoreAway}</div>
+            ${document.getElementById('intermission-alert') ? '<div class="intermission-alert" style="color: #ffeb3b; font-size: 18px;">场间休息中，请耐心等待～</div>' : ''}
         </div>
     `;
 
@@ -629,7 +634,7 @@ function updateResultTableNew() {
         tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
     });
     tableHTML += `</tr></tbody></table>
-        <div style="font-size: 12px; text-align: center; margin-top: 5px;">H为监管，S为求生</div>
+        <div style="font-size: 12px; text-align: center; margin-top: 5px;" class="role-note">H为监管，S为求生</div>
     </div>`;
 
     const resultsContainer = document.getElementById('results');
@@ -638,6 +643,7 @@ function updateResultTableNew() {
     }
     updateOBSWindow();
 }
+
 
 // 计算大分和小分
 function calculateScores() {
@@ -648,7 +654,7 @@ function calculateScores() {
     games.forEach(gameId => {
         const result1 = getHalfScores(gameId, 'result1');
         const result2 = getHalfScores(gameId, 'result2');
-        
+
         // 小分累加
         smallHome += result1.main + result2.main;
         smallAway += result1.sub + result2.sub;
@@ -662,8 +668,8 @@ function calculateScores() {
         }
     });
 
-    return { 
-        bigScoreHome: bigHome, 
+    return {
+        bigScoreHome: bigHome,
         bigScoreAway: bigAway,
         smallScoreHome: smallHome,
         smallScoreAway: smallAway
@@ -718,9 +724,77 @@ function getHalfDisplay(gameId, half) {
 
 function updateOBSWindow() {
     if (obsWindow && !obsWindow.closed) {
+          // 添加OBS专用样式
+        obsWindow.document.head.innerHTML += `
+        <style>
+            .match-header, .big-score, .small-score, .intermission-alert {
+                color: #fff !important;
+                text-shadow: 0 0 10px rgba(255,255,255,0.8) !important;
+            }
+            .highlight {
+                background-color: #ffeb3b !important;
+                color: #000 !important;
+                text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
+            }
+        </style>`;
         const resultsDiv = document.getElementById('results');
         if (resultsDiv) {
             obsWindow.document.getElementById('obs-results').innerHTML = resultsDiv.outerHTML;
         }
     }
+}
+
+// 新增功能函数
+let isIntermission = false;
+let isMatchEnd = false;
+
+function toggleIntermission() {
+    const btn = document.getElementById('toggle-intermission');
+    const alertDiv = document.getElementById('intermission-alert');
+    
+    if (!isIntermission) {
+        const newAlert = document.createElement('div');
+        newAlert.id = 'intermission-alert';
+        newAlert.className = 'intermission-alert';
+        newAlert.style.cssText = 'color: #ffeb3b; font-size: 18px; text-align: center; text-shadow: 0 0 10px #ffeb3b;';
+        newAlert.textContent = '场间休息中，请耐心等待～';
+        document.querySelector('.match-header').appendChild(newAlert);
+        btn.textContent = '结束场间';
+    } else {
+        if (alertDiv) alertDiv.remove();
+        btn.textContent = '进入场间';
+    }
+    isIntermission = !isIntermission;
+    updateResultTableNew();
+}
+
+function toggleMatchEnd() {
+    const btn = document.getElementById('toggle-match-end');
+    const mainTeam = document.getElementById('main-team').value;
+    const subTeam = document.getElementById('sub-team').value;
+    const { bigScoreHome, bigScoreAway } = calculateScores();
+
+    if (!isMatchEnd) {
+        // 标黄获胜队伍
+        const winnerClass = 'highlight';
+        const header = document.querySelector('.match-header h2');
+        const rows = document.querySelectorAll('#obs-new-table tr');
+        
+        if (bigScoreHome > bigScoreAway) {
+            header.innerHTML = header.innerHTML.replace(mainTeam, `<span class="${winnerClass}">${mainTeam}</span>`);
+            rows[0].querySelectorAll('td').forEach(td => td.classList.add(winnerClass));
+        } else if (bigScoreAway > bigScoreHome) {
+            header.innerHTML = header.innerHTML.replace(subTeam, `<span class="${winnerClass}">${subTeam}</span>`);
+            rows[1].querySelectorAll('td').forEach(td => td.classList.add(winnerClass));
+        }
+        btn.textContent = '取消结束';
+    } else {
+        // 恢复原状
+        document.querySelectorAll('.highlight').forEach(el => {
+            el.classList.remove('highlight');
+        });
+        btn.textContent = '比赛结束';
+    }
+    isMatchEnd = !isMatchEnd;
+    updateResultTableNew();
 }
