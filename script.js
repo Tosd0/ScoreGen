@@ -6,7 +6,9 @@ document.addEventListener("DOMContentLoaded", function() {
         "<联>醒",
         "北京市第三十五中学",
         "<联>上古神兽",
-        "北大附中朝阳未来学校"
+        "北大附中朝阳未来学校",
+        "<联>QwQ",
+        "北京教师进修学校"
     ];
 
     // 新增：绑定“打开OBS捕获窗口”按钮事件
