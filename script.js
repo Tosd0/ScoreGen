@@ -574,7 +574,26 @@ function formatTimeToSeconds(time) {
 }
 
 function updateResultTableNew() {
-    // 定义各局对应的id与标签
+    const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway } = calculateScores();
+    const mainTeam = document.getElementById('main-team').value || '主队';
+    const subTeam = document.getElementById('sub-team').value || '客队';
+
+    // 构造标题和大分小分
+    const headerHTML = `
+        <div style="text-align: center; margin-bottom: 10px;">
+            <h2 style="margin: 0; font-size: 28px;">${mainTeam} vs ${subTeam}</h2>
+            <div style="font-size: 24px; margin: 5px 0;">大分 ${bigScoreHome}:${bigScoreAway}</div>
+            <div style="font-size: 20px; margin: 5px 0;">小分 ${smallScoreHome}:${smallScoreAway}</div>
+        </div>
+    `;
+
+    let tableHTML = `<div style="padding: 0 25px; overflow-x:auto;"> 
+        ${headerHTML}
+        <table id="obs-new-table" border="1" cellspacing="0" cellpadding="5" style="width:100%; margin:0 auto;">
+            <thead>
+                <tr>
+                    <th rowspan="2">学校/队伍</th>`;
+
     const games = [
         { id: "bo1", label: "GAME1" },
         { id: "bo2", label: "GAME2" },
@@ -582,68 +601,6 @@ function updateResultTableNew() {
         { id: "tiebreaker", label: "TIEBREAKER" }
     ];
 
-    // 内部函数：获取某局某半场的显示结果
-    function getHalfDisplay(gameId, half) {
-        const roleSelect = document.querySelector(`select[data-result-id="${gameId}-${half}"]`);
-        const scoreSelect = document.querySelector(`select[data-id="${gameId}-${half}-main"]`);
-        if (!roleSelect || !scoreSelect) {
-            return { main: '', sub: '' };
-        }
-        const role = roleSelect.value;
-        const option = scoreSelect.value;
-        
-        let time = '';
-        // 仅处理加赛的时间
-        if (gameId === 'tiebreaker') {
-            const timeInput = document.querySelector(`input[data-id="${gameId}-${half}-time"]`);
-            if (timeInput && timeInput.value) {
-                time = `(${timeInput.value})`; // 直接显示原始输入
-            }
-        }
-
-        if (option === '未选择' || role === '未选择') {
-            return { main: '', sub: '' };
-        }
-
-        let mainScore, subScore;
-        switch (option) {
-            case '4':
-                mainScore = 5; subScore = 0;
-                break;
-            case '3':
-                mainScore = 3; subScore = 1;
-                break;
-            case '2':
-                mainScore = 2; subScore = 2;
-                break;
-            case '1':
-                mainScore = 1; subScore = 3;
-                break;
-            case '0':
-                mainScore = 0; subScore = 5;
-                break;
-            default:
-                mainScore = 0; subScore = 0;
-        }
-
-        // 主场显示的角色前缀
-        const mainAbbr = role === '监管' ? 'H' : (role === '求生' ? 'S' : '');
-        const subAbbr = role === '监管' ? 'S' : (role === '求生' ? 'H' : '');
-        
-        return {
-            main: mainAbbr + mainScore + time, // 例如 S2(3:54)
-            sub: subAbbr + subScore + time    // 例如 H3(2:30)
-        };
-    }
-
-    // 构造表格HTML
-    let tableHTML = `<div style="padding: 0 25px; overflow-x:auto;"> 
-        <table id="obs-new-table" border="1" cellspacing="0" cellpadding="5" style="width:100%; margin:0 auto;">
-            <thead>
-                <tr>
-                    <th rowspan="2">学校/队伍</th>`;
-    
-    // 表头
     games.forEach(game => {
         tableHTML += `<th colspan="2">${game.label}</th>`;
     });
@@ -652,12 +609,8 @@ function updateResultTableNew() {
         tableHTML += `<th>FIRST HALF</th><th>SECOND HALF</th>`;
     });
     tableHTML += `</tr></thead><tbody>`;
-    
-    // 数据行
-    const mainTeam = document.getElementById('main-team').value || '主场学校';
-    const subTeam = document.getElementById('sub-team').value || '客场学校';
-    
-    // 主场行
+
+    // 主队行
     tableHTML += `<tr><td>${mainTeam}</td>`;
     games.forEach(game => {
         const firstHalf = getHalfDisplay(game.id, 'result1').main;
@@ -665,26 +618,100 @@ function updateResultTableNew() {
         tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
     });
     tableHTML += `</tr>`;
-    
-    // 客场行
+
+    // 客队行
     tableHTML += `<tr><td>${subTeam}</td>`;
     games.forEach(game => {
         const firstHalf = getHalfDisplay(game.id, 'result1').sub;
         const secondHalf = getHalfDisplay(game.id, 'result2').sub;
         tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
     });
-    tableHTML += `</tr>`;
-    
-    tableHTML += `</tbody></table></div>`;
-    
-    // 更新显示
+    tableHTML += `</tr></tbody></table>
+        <div style="font-size: 12px; text-align: center; margin-top: 5px;">H为监管，S为求生</div>
+    </div>`;
+
     const resultsContainer = document.getElementById('results');
     if (resultsContainer) {
         resultsContainer.innerHTML = tableHTML;
     }
-    
-    // 同步OBS窗口
     updateOBSWindow();
+}
+
+// 计算大分和小分
+function calculateScores() {
+    let bigHome = 0, bigAway = 0;
+    let smallHome = 0, smallAway = 0;
+
+    const games = ['bo1', 'bo2', 'bo3', 'tiebreaker'];
+    games.forEach(gameId => {
+        const result1 = getHalfScores(gameId, 'result1');
+        const result2 = getHalfScores(gameId, 'result2');
+        
+        // 小分累加
+        smallHome += result1.main + result2.main;
+        smallAway += result1.sub + result2.sub;
+
+        // 大分计算（需要上下半场都有效）
+        if (result1.valid && result2.valid) {
+            const totalHome = result1.main + result2.main;
+            const totalAway = result1.sub + result2.sub;
+            if (totalHome > totalAway) bigHome++;
+            else if (totalAway > totalHome) bigAway++;
+        }
+    });
+
+    return { 
+        bigScoreHome: bigHome, 
+        bigScoreAway: bigAway,
+        smallScoreHome: smallHome,
+        smallScoreAway: smallAway
+    };
+}
+
+// 新增：获取半场分数（数值）
+function getHalfScores(gameId, half) {
+    const roleSelect = document.querySelector(`select[data-result-id="${gameId}-${half}"]`);
+    const scoreSelect = document.querySelector(`select[data-id="${gameId}-${half}-main"]`);
+    
+    if (!roleSelect || !scoreSelect || 
+        roleSelect.value === '未选择' || 
+        scoreSelect.value === '未选择') {
+        return { main: 0, sub: 0, valid: false };
+    }
+
+    const option = scoreSelect.value;
+    let main = 0, sub = 0;
+    switch(option) {
+        case '4': main = 5; sub = 0; break;
+        case '3': main = 3; sub = 1; break;
+        case '2': main = 2; sub = 2; break;
+        case '1': main = 1; sub = 3; break;
+        case '0': main = 0; sub = 5; break;
+    }
+    return { main, sub, valid: true };
+}
+
+function getHalfDisplay(gameId, half) {
+    const scores = getHalfScores(gameId, half);
+    const roleSelect = document.querySelector(`select[data-result-id="${gameId}-${half}"]`);
+    
+    let displayMain = '', displaySub = '';
+    if (scores.valid) {
+        const role = roleSelect.value;
+        const prefixMain = role === '监管' ? 'H' : (role === '求生' ? 'S' : '');
+        const prefixSub = role === '监管' ? 'S' : (role === '求生' ? 'H' : '');
+        
+        // 处理加赛时间显示
+        let timeSuffix = '';
+        if (gameId === 'tiebreaker') {
+            const timeInput = document.querySelector(`input[data-id="${gameId}-${half}-time"]`);
+            if (timeInput && timeInput.value) timeSuffix = `(${timeInput.value})`;
+        }
+
+        displayMain = `${prefixMain}${scores.main}${timeSuffix}`;
+        displaySub = `${prefixSub}${scores.sub}${timeSuffix}`;
+    }
+    return { main: displayMain || '-', sub: displaySub || '-' };
 }
 
 function updateOBSWindow() {
