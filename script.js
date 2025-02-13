@@ -71,6 +71,20 @@ document.addEventListener("DOMContentLoaded", function() {
         background-color: transparent;
         padding: 5px;
     }
+
+    #obs-results .role-note,
+    #obs-results .intermission-alert {
+        color: #ffeb3b !important;
+        text-shadow: 0 0 5px rgba(255,235,59,0.8) !important;
+    }
+
+    #obs-results table {
+        color: #fff !important;
+    }
+
+    #obs-results table td.highlight {
+        color: #000 !important;
+    }
   </style>
 </head>
 <body>
@@ -724,27 +738,6 @@ function getHalfDisplay(gameId, half) {
 
 function updateOBSWindow() {
     if (obsWindow && !obsWindow.closed) {
-          // 添加OBS专用样式
-        obsWindow.document.head.innerHTML += `
-        <style>
-            .role-note {
-                color: #ffeb3b !important;
-                text-shadow: 0 0 5px rgba(255,235,59,0.8) !important;
-            }
-            .intermission-alert {
-                color: #ffeb3b !important;
-                text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
-            }
-            .match-header, .big-score, .small-score {
-                color: #fff !important;
-                text-shadow: 0 0 10px rgba(255,255,255,0.8) !important;
-            }
-            .highlight {
-                background-color: #ffeb3b !important;
-                color: #000 !important;
-                text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
-            }
-        </style>`;
         const resultsDiv = document.getElementById('results');
         if (resultsDiv) {
             obsWindow.document.getElementById('obs-results').innerHTML = resultsDiv.outerHTML;
