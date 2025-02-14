@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // 新增：绑定“打开OBS捕获窗口”按钮事件
     document.getElementById('open-obs-window').addEventListener('click', function() {
         if (!obsWindow || obsWindow.closed) {
-            obsWindow = window.open("", "obsWindow", "width=1300,height=400");
+            obsWindow = window.open("", "obsWindow", "width=800,height=400");
             obsWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
@@ -24,68 +24,68 @@ document.addEventListener("DOMContentLoaded", function() {
   <link rel="stylesheet" href="styles.css">
   <style>
     html, body {
-      height: 100%;
-      margin: 0;
-      position: relative;
+        height: 100%;
+        margin: 0;
+        position: relative;
     }
     body {
-      background: url('https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png') no-repeat center center fixed;
-      background-size: cover;
+        background: url('https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png') no-repeat center center fixed;
+        background-size: cover;
     }
-    /* 遮罩层 */
     #background-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);  /* 50% 不透明的黑色 */
-      z-index: 1;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1;
     }
-    /* OBS 结果容器：内容层 */
     #obs-results {
-      position: relative;
-      z-index: 2; /* 确保内容在遮罩层之上 */
-      display: flex;
-      justify-content: center;  /* 水平居中 */
-      align-items: center;      /* 垂直居中 */
-      height: 100vh;
-      box-sizing: border-box;
-      padding: 25px;            /* 上下左右均留25px */
+        position: relative;
+        z-index: 2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        box-sizing: border-box;
+        padding: 25px;
+        /* 新增全局荧光效果 */
+        color: #fff !important;
+        text-shadow: 0 0 10px rgba(255,255,255,0.8) !important;
     }
-    /* 表格整体设置 */
+    /* 表格样式修正 */
     #obs-results table {
         margin: 0 auto;
         border-collapse: separate;
         border: 1px solid #fff;
-        color: #fff;
         background-color: transparent;
         box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        /* 确保继承荧光效果 */
+        color: inherit !important;
     }
-
-    /* 针对表头和单元格的额外设置 */
-    #obs-results table th,
-    #obs-results table td {
+    #obs-results th,
+    #obs-results td {
         border: 1px solid #fff;
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
         background-color: transparent;
         padding: 5px;
+        /* 继承荧光效果 */
+        color: inherit !important;
+        text-shadow: inherit !important;
     }
-
+    /* 特殊元素颜色修正 */
     #obs-results .role-note,
     #obs-results .intermission-alert {
         color: #ffeb3b !important;
-        text-shadow: 0 0 5px rgba(255,235,59,0.8) !important;
+        text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
     }
-
-    #obs-results table {
-        color: #fff !important;
-    }
-
-    #obs-results table td.highlight {
+    /* 高亮状态保持黑色 */
+    #obs-results .highlight {
+        background-color: #ffeb3b !important;
         color: #000 !important;
+        text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
     }
-  </style>
+    </style>
 </head>
 <body>
   <!-- 遮罩层 -->
@@ -627,7 +627,7 @@ function updateResultTableNew() {
     });
     tableHTML += `</tr><tr>`;
     games.forEach(game => {
-        tableHTML += `<th>FIRST HALF</th><th>SECOND HALF</th>`;
+        tableHTML += `<th>上  半</th><th>下  半</th>`;
     });
     tableHTML += `</tr></thead><tbody>`;
 
