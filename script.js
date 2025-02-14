@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", function() {
         "北京教师进修学校"
     ];
 
-    // 新增：绑定“打开OBS捕获窗口”按钮事件
     document.getElementById('open-obs-window').addEventListener('click', function() {
         if (!obsWindow || obsWindow.closed) {
             obsWindow = window.open("", "obsWindow", "width=800,height=400");
@@ -50,7 +49,7 @@ document.addEventListener("DOMContentLoaded", function() {
         height: 100vh;
         box-sizing: border-box;
         padding: 25px;
-        /* 新增全局荧光效果 */
+        /* 全局荧光效果 */
         color: #fff !important;
         text-shadow: 0 0 10px rgba(255,255,255,0.8) !important;
     }
@@ -79,13 +78,13 @@ document.addEventListener("DOMContentLoaded", function() {
         color: #ffeb3b !important;
         text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
     }
-    /* 高亮状态保持黑色 */
+    /* 修改高亮样式：不使用背景色，而是设置文字颜色为黄色并加荧光 */
     #obs-results .highlight {
-        background-color: #ffeb3b !important;
-        color: #000 !important;
-        text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
+        background-color: transparent !important;
+        color: #ffeb3b !important;
+        text-shadow: 0 0 10px #ffeb3b, 0 0 20px #ffeb3b, 0 0 30px #ffeb3b !important;
     }
-    </style>
+  </style>
 </head>
 <body>
   <!-- 遮罩层 -->
@@ -594,16 +593,42 @@ function formatTimeToSeconds(time) {
 }
 
 function updateResultTableNew() {
-    const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway } = calculateScores();
+    const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub } = calculateScores();
     const mainTeam = document.getElementById('main-team').value || '主队';
     const subTeam = document.getElementById('sub-team').value || '客队';
 
-    // 构造标题和大分小分
+    // 判断胜利队伍
+    let winningTeam = null;
+    if (isMatchEnd) {
+        if (bigScoreMain > bigScoreSub) {
+            winningTeam = 'main';
+        } else if (bigScoreSub > bigScoreMain) {
+            winningTeam = 'sub';
+        } else {
+            if (smallScoreMain > smallScoreSub) {
+                winningTeam = 'main';
+            } else if (smallScoreSub > smallScoreMain) {
+                winningTeam = 'sub';
+            }
+        }
+    }
+
+    // 动态生成标题（保持原样）
+    let mainDisplay = mainTeam;
+    let subDisplay = subTeam;
+    if (isMatchEnd) {
+        if (winningTeam === 'main') {
+            mainDisplay = `<span class="highlight">${mainTeam}</span>`;
+        } else if (winningTeam === 'sub') {
+            subDisplay = `<span class="highlight">${subTeam}</span>`;
+        }
+    }
+
     const headerHTML = `
         <div class="match-header" style="text-align: center; margin-bottom: 10px;">
-            <h2 style="margin: 0; font-size: 28px;">${mainTeam} vs ${subTeam}</h2>
-            <div class="big-score" style="font-size: 24px; margin: 5px 0;">大分 ${bigScoreHome}:${bigScoreAway}</div>
-            <div class="small-score" style="font-size: 20px; margin: 5px 0;">小分 ${smallScoreHome}:${smallScoreAway}</div>
+            <h2 style="margin: 0; font-size: 28px;">${mainDisplay} vs ${subDisplay}</h2>
+            <div class="big-score" style="font-size: 24px; margin: 5px 0;">大分 ${bigScoreMain}:${bigScoreSub}</div>
+            <div class="small-score" style="font-size: 20px; margin: 5px 0;">小分 ${smallScoreMain}:${smallScoreSub}</div>
             ${document.getElementById('intermission-alert') ? '<div class="intermission-alert" style="color: #ffeb3b; font-size: 18px;">场间休息中，请耐心等待～</div>' : ''}
         </div>
     `;
@@ -614,14 +639,12 @@ function updateResultTableNew() {
             <thead>
                 <tr>
                     <th rowspan="2">学校/队伍</th>`;
-
     const games = [
         { id: "bo1", label: "GAME1" },
         { id: "bo2", label: "GAME2" },
         { id: "bo3", label: "GAME3" },
         { id: "tiebreaker", label: "TIEBREAKER" }
     ];
-
     games.forEach(game => {
         tableHTML += `<th colspan="2">${game.label}</th>`;
     });
@@ -631,21 +654,25 @@ function updateResultTableNew() {
     });
     tableHTML += `</tr></thead><tbody>`;
 
-    // 主队行
-    tableHTML += `<tr><td>${mainTeam}</td>`;
+    // 生成主队行（添加高亮效果）
+    const mainHighlight = (winningTeam === 'main') ? ' class="highlight"' : '';
+    tableHTML += `<tr><td${mainHighlight}>${mainTeam}</td>`;
     games.forEach(game => {
         const firstHalf = getHalfDisplay(game.id, 'result1').main;
         const secondHalf = getHalfDisplay(game.id, 'result2').main;
-        tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
+        const highlight = (winningTeam === 'main') ? ' class="highlight"' : '';
+        tableHTML += `<td${highlight}>${firstHalf}</td><td${highlight}>${secondHalf}</td>`;
     });
     tableHTML += `</tr>`;
 
-    // 客队行
-    tableHTML += `<tr><td>${subTeam}</td>`;
+    // 生成客队行（添加高亮效果）
+    const subHighlight = (winningTeam === 'sub') ? ' class="highlight"' : '';
+    tableHTML += `<tr><td${subHighlight}>${subTeam}</td>`;
     games.forEach(game => {
         const firstHalf = getHalfDisplay(game.id, 'result1').sub;
         const secondHalf = getHalfDisplay(game.id, 'result2').sub;
-        tableHTML += `<td>${firstHalf}</td><td>${secondHalf}</td>`;
+        const highlight = (winningTeam === 'sub') ? ' class="highlight"' : '';
+        tableHTML += `<td${highlight}>${firstHalf}</td><td${highlight}>${secondHalf}</td>`;
     });
     tableHTML += `</tr></tbody></table>
         <div style="color: #ffeb3b; font-size: 12px; text-align: center; margin-top: 5px;" class="role-note">H为监管 S为求生</div>
@@ -655,14 +682,25 @@ function updateResultTableNew() {
     if (resultsContainer) {
         resultsContainer.innerHTML = tableHTML;
     }
+
+    // OBS窗口更新逻辑（保持原样）
+    function updateOBSWindow() {
+        if (obsWindow && !obsWindow.closed) {
+            const resultsDiv = document.getElementById('results');
+            if (resultsDiv) {
+                obsWindow.document.getElementById('obs-results').innerHTML = resultsDiv.outerHTML;
+            }
+        }
+    }
     updateOBSWindow();
 }
 
 
+
 // 计算大分和小分
 function calculateScores() {
-    let bigHome = 0, bigAway = 0;
-    let smallHome = 0, smallAway = 0;
+    let bigMain = 0, bigSub = 0;
+    let smallMain = 0, smallSub = 0;
 
     const games = ['bo1', 'bo2', 'bo3', 'tiebreaker'];
     games.forEach(gameId => {
@@ -670,23 +708,23 @@ function calculateScores() {
         const result2 = getHalfScores(gameId, 'result2');
 
         // 小分累加
-        smallHome += result1.main + result2.main;
-        smallAway += result1.sub + result2.sub;
+        smallMain += result1.main + result2.main;
+        smallSub += result1.sub + result2.sub;
 
         // 大分计算（需要上下半场都有效）
         if (result1.valid && result2.valid) {
-            const totalHome = result1.main + result2.main;
-            const totalAway = result1.sub + result2.sub;
-            if (totalHome > totalAway) bigHome++;
-            else if (totalAway > totalHome) bigAway++;
+            const totalMain = result1.main + result2.main;
+            const totalSub = result1.sub + result2.sub;
+            if (totalMain > totalSub) bigMain++;
+            else if (totalSub > totalMain) bigSub++;
         }
     });
 
     return {
-        bigScoreHome: bigHome,
-        bigScoreAway: bigAway,
-        smallScoreHome: smallHome,
-        smallScoreAway: smallAway
+        bigScoreMain: bigMain,
+        bigScoreSub: bigSub,
+        smallScoreMain: smallMain,
+        smallScoreSub: smallSub
     };
 }
 
@@ -771,29 +809,9 @@ function toggleIntermission() {
 
 function toggleMatchEnd() {
     const btn = document.getElementById('toggle-match-end');
-    const mainTeam = document.getElementById('main-team').value;
-    const subTeam = document.getElementById('sub-team').value;
-    const { bigScoreHome, bigScoreAway } = calculateScores();
-
     if (!isMatchEnd) {
-        // 标黄获胜队伍
-        const winnerClass = 'highlight';
-        const header = document.querySelector('.match-header h2');
-        const rows = document.querySelectorAll('#obs-new-table tr');
-        
-        if (bigScoreHome > bigScoreAway) {
-            header.innerHTML = header.innerHTML.replace(mainTeam, `<span class="${winnerClass}">${mainTeam}</span>`);
-            rows[0].querySelectorAll('td').forEach(td => td.classList.add(winnerClass));
-        } else if (bigScoreAway > bigScoreHome) {
-            header.innerHTML = header.innerHTML.replace(subTeam, `<span class="${winnerClass}">${subTeam}</span>`);
-            rows[1].querySelectorAll('td').forEach(td => td.classList.add(winnerClass));
-        }
         btn.textContent = '取消结束';
     } else {
-        // 恢复原状
-        document.querySelectorAll('.highlight').forEach(el => {
-            el.classList.remove('highlight');
-        });
         btn.textContent = '比赛结束';
     }
     isMatchEnd = !isMatchEnd;
