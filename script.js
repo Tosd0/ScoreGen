@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     document.getElementById('open-obs-window').addEventListener('click', function() {
         if (!obsWindow || obsWindow.closed) {
-            obsWindow = window.open("", "obsWindow", "width=800,height=400");
+            obsWindow = window.open("", "obsWindow", "width=800,height=360");
             obsWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('match-instructions').style.display = 'block';
             createBO('bo1', mainTeam, subTeam);
             createBO('bo2', mainTeam, subTeam);
+            createBO('bo3', mainTeam, subTeam);
             document.getElementById('add-bo').style.display = 'block';
             saveData();
         } else {
@@ -140,7 +141,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('toggle-match-end').addEventListener('click', toggleMatchEnd);
 });
 
-let boCount = 2; // 初始已创建bo1和bo2
+let boCount = 3;
 
 document.getElementById('add-bo').addEventListener('click', function() {
     boCount++;
@@ -150,7 +151,7 @@ document.getElementById('add-bo').addEventListener('click', function() {
         document.getElementById(`bo${boCount}-result1`).style.display = 'table-cell';
         document.getElementById(`bo${boCount}-result2`).style.display = 'table-cell';
     }
-    if (boCount === 3) {
+    if (boCount === 5) {
         document.getElementById('add-bo').style.display = 'none';
         document.getElementById('add-tiebreaker').style.display = 'block';
     }
@@ -626,9 +627,9 @@ function updateResultTableNew() {
 
     const headerHTML = `
         <div class="match-header" style="text-align: center; margin-bottom: 10px;">
-            <h2 style="margin: 0; font-size: 28px;">${mainDisplay} vs ${subDisplay}</h2>
-            <div class="big-score" style="font-size: 24px; margin: 5px 0;">大分 ${bigScoreMain}:${bigScoreSub}</div>
-            <div class="small-score" style="font-size: 20px; margin: 5px 0;">小分 ${smallScoreMain}:${smallScoreSub}</div>
+            <h2 style="margin: 0; font-size: 26px;">${mainDisplay} vs ${subDisplay}</h2>
+            <div class="big-score" style="font-size: 22px; margin: 2px 0;">大分 ${bigScoreMain}:${bigScoreSub}</div>
+            <div class="small-score" style="font-size: 18px; margin: 2px 0;">小分 ${smallScoreMain}:${smallScoreSub}</div>
             ${document.getElementById('intermission-alert') ? '<div class="intermission-alert" style="color: #ffeb3b; font-size: 18px;">场间休息中，请耐心等待～</div>' : ''}
         </div>
     `;
@@ -643,6 +644,8 @@ function updateResultTableNew() {
         { id: "bo1", label: "GAME1" },
         { id: "bo2", label: "GAME2" },
         { id: "bo3", label: "GAME3" },
+        { id: "bo4", label: "GAME4" },
+        { id: "bo5", label: "GAME5" },
         { id: "tiebreaker", label: "TIEBREAKER" }
     ];
     games.forEach(game => {
@@ -702,7 +705,7 @@ function calculateScores() {
     let bigMain = 0, bigSub = 0;
     let smallMain = 0, smallSub = 0;
 
-    const games = ['bo1', 'bo2', 'bo3', 'tiebreaker'];
+    const games = ['bo1', 'bo2', 'bo3', 'bo4', 'bo5', 'tiebreaker'];
     games.forEach(gameId => {
         const result1 = getHalfScores(gameId, 'result1');
         const result2 = getHalfScores(gameId, 'result2');
