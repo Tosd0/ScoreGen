@@ -1,837 +1,468 @@
-// 定义全局变量，用于OBS捕获窗口引用
-let obsWindow = null;
+/**
+ * IVBL 赛果填写辅助工具
+ * @version 3.0.0 Refactored
+ * @author Tosd0, Refactored by Gemini
+ */
 
-document.addEventListener("DOMContentLoaded", function() {
-    const schools = [
-        "<联>醒",
-        "北京市第三十五中学",
-        "<联>上古神兽",
-        "北大附中朝阳未来学校",
-        "<联>QwQ",
-        "北京教师进修学校"
-    ];
+const BackGroundImageUrl = "https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png";
 
-    document.getElementById('open-obs-window').addEventListener('click', function() {
+const SCHOOLS = [
+            "<联>醒", "北京市第三十五中学", "<联>上古神兽", 
+            "北大附中朝阳未来学校", "<联>QwQ", "北京教师进修学校"
+        ];
+
+document.addEventListener("DOMContentLoaded", () => {
+    // --- 1. APP-WIDE CONSTANTS & STATE ---
+
+    // 定义全局常量
+    const ROLES = {
+        hunter: '监管',
+        survivor: '求生'
+    };
+    const MATCH_MODES = {
+        bo3: { initialGames: 2, maxGames: 3 },
+        bo5: { initialGames: 3, maxGames: 5 }
+    };
+
+    // 使用一个对象统一管理应用的所有动态状态
+    let STATE = {
+        mainTeam: '',
+        subTeam: '',
+        matchMode: 'bo5',
+        games: [], // { id: 'bo1', role1: '', result1: '', role2: '', result2: '', time1: '', time2: '' }
+        isIntermission: false,
+        isMatchEnd: false
+    };
+
+    let obsWindow = null;
+
+    // --- 2. DOM ELEMENT REFERENCES ---
+    const elements = {
+        mainTeamSelect: document.getElementById('main-team'),
+        subTeamSelect: document.getElementById('sub-team'),
+        matchModeSelect: document.getElementById('game-mode-select'),
+        inputStage: document.getElementById('input-stage'),
+        outputStage: document.getElementById('output-stage'),
+        matchTitle: document.getElementById('match-title'),
+        matchInstructions: document.getElementById('match-instructions'),
+        matchesContainer: document.getElementById('matches'),
+        resultsContainer: document.getElementById('results'),
+        addBoButton: document.getElementById('add-bo'),
+        addTiebreakerButton: document.getElementById('add-tiebreaker'),
+        restoredDataContainer: document.getElementById('restored-data'),
+        restoredDataContent: document.getElementById('restored-data-content'),
+        // 按钮
+        nextButton: document.getElementById('next-button'),
+        restoreButton: document.getElementById('restore-button'),
+        obsWindowButton: document.getElementById('open-obs-window'),
+        intermissionButton: document.getElementById('toggle-intermission'),
+        matchEndButton: document.getElementById('toggle-match-end')
+    };
+
+    // --- 3. UI RENDERING FUNCTIONS ---
+
+    function render() {
+        renderMatchUI();
+        renderResultTable();
+        updateOBSWindow();
+        saveStateToLocalStorage();
+    }
+
+    /**
+     * 创建或更新所有比赛场次的输入界面
+     */
+    function renderMatchUI() {
+        elements.matchesContainer.innerHTML = '';
+        STATE.games.forEach(game => {
+            const isTiebreaker = game.id === 'tiebreaker';
+            elements.matchesContainer.appendChild(createGameUI(game, isTiebreaker));
+        });
+        updateButtonVisibility();
+    }
+
+    /**
+     * 创建单个游戏场次（BO或加赛）的HTML结构
+     * @param {object} game - 游戏状态对象
+     * @param {boolean} isTiebreaker - 是否为加赛
+     * @returns {HTMLElement}
+     */
+    function createGameUI(game, isTiebreaker) {
+        const RESULTS = {
+            hunter: { 4: '四杀', 3: '三杀', 2: '平局', 1: '一杀', 0: '零杀' },
+            survivor: { 4: '四跑', 3: '三跑', 2: '平局', 1: '一跑', 0: '零跑' }
+        };
+
+        const gameDiv = document.createElement('div');
+        gameDiv.id = game.id;
+        gameDiv.className = 'game-instance';
+        const gameLabel = game.id.toUpperCase();
+
+        const createHalfUI = (half) => {
+            const role = game[`role${half}`];
+            const result = game[`result${half}`];
+            const time = game[`time${half}`];
+
+            const roleOptions = Object.values(ROLES).map(r =>
+                `<option value="${r}" ${role === r ? 'selected' : ''}>${r}</option>`
+            ).join('');
+
+            const resultOptions = role ? Object.entries(RESULTS[role === ROLES.hunter ? 'hunter' : 'survivor']).map(([value, text]) =>
+                `<option value="${value}" ${result === value ? 'selected' : ''}>${text}</option>`
+            ).join('') : '';
+            
+            const timeInputHTML = isTiebreaker ? `<input type="text" class="time-input" placeholder="比赛时间(秒)" data-half="${half}" value="${time || ''}">` : '';
+
+            return `
+                <div>
+                    ${STATE.mainTeam}（<select class="role-select" data-half="${half}">
+                        <option value="">未选择</option>
+                        ${roleOptions}
+                    </select>）
+                    游戏结果：<select class="score-select" data-half="${half}">
+                        <option value="">未选择</option>
+                        ${resultOptions}
+                    </select>
+                    ${timeInputHTML}
+                </div>
+            `;
+        };
+        
+        gameDiv.innerHTML = `
+            <h3>${gameLabel}</h3>
+            ${createHalfUI(1)}
+            ${createHalfUI(2)}
+        `;
+        return gameDiv;
+    }
+
+    function updateButtonVisibility() {
+        const matchConfig = MATCH_MODES[STATE.matchMode];
+        const currentBoCount = STATE.games.filter(g => g.id.startsWith('bo')).length;
+        const hasTiebreaker = STATE.games.some(g => g.id === 'tiebreaker');
+
+        elements.addBoButton.style.display = (currentBoCount < matchConfig.maxGames) ? 'block' : 'none';
+        elements.addTiebreakerButton.style.display = (currentBoCount === matchConfig.maxGames && !hasTiebreaker) ? 'block' : 'none';
+    }
+    
+    function renderResultTable() {
+        const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub, gameDetails } = calculateScores();
+
+        let winningTeam = null;
+        if (STATE.isMatchEnd) {
+            if (bigScoreMain !== bigScoreSub) {
+                winningTeam = bigScoreMain > bigScoreSub ? 'main' : 'sub';
+            } else if (smallScoreMain !== smallScoreSub) {
+                winningTeam = smallScoreMain > smallScoreSub ? 'main' : 'sub';
+            }
+        }
+        
+        const mainHighlight = winningTeam === 'main' ? 'class="highlight"' : '';
+        const subHighlight = winningTeam === 'sub' ? 'class="highlight"' : '';
+
+        const headerHTML = `
+            <div class="match-header" style="text-align: center; margin-bottom: 10px;">
+                <h2 style="margin: 0; font-size: 26px;">
+                    <span ${mainHighlight}>${STATE.mainTeam}</span> vs <span ${subHighlight}>${STATE.subTeam}</span>
+                </h2>
+                <div class="big-score" style="font-size: 22px; margin: 2px 0;">大分 ${bigScoreMain}:${bigScoreSub}</div>
+                <div class="small-score" style="font-size: 18px; margin: 2px 0;">小分 ${smallScoreMain}:${smallScoreSub}</div>
+                ${STATE.isIntermission ? '<div class="intermission-alert" style="color: #ffeb3b; font-size: 18px;">场间休息中，请耐心等待～</div>' : ''}
+            </div>
+        `;
+
+        const tableHeaders = gameDetails.map(g => `<th colspan="2">${g.label}</th>`).join('');
+        const halfHeaders = gameDetails.map(() => `<th>上半</th><th>下半</th>`).join('');
+
+        const mainTeamRow = gameDetails.map(g => `<td ${mainHighlight}>${g.main1}</td><td ${mainHighlight}>${g.main2}</td>`).join('');
+        const subTeamRow = gameDetails.map(g => `<td ${subHighlight}>${g.sub1}</td><td ${subHighlight}>${g.sub2}</td>`).join('');
+        
+        elements.resultsContainer.innerHTML = `
+            <div style="padding: 0 25px; overflow-x:auto;">
+                ${headerHTML}
+                <table id="obs-new-table" border="1" cellspacing="0" cellpadding="5" style="width:100%; margin:0 auto;">
+                    <thead>
+                        <tr><th rowspan="2">学校/队伍</th>${tableHeaders}</tr>
+                        <tr>${halfHeaders}</tr>
+                    </thead>
+                    <tbody>
+                        <tr><td ${mainHighlight}>${STATE.mainTeam}</td>${mainTeamRow}</tr>
+                        <tr><td ${subHighlight}>${STATE.subTeam}</td>${subTeamRow}</tr>
+                    </tbody>
+                </table>
+                <div style="color: #ffeb3b; font-size: 12px; text-align: center; margin-top: 5px;" class="role-note">H为监管 S为求生</div>
+            </div>`;
+    }
+
+    // --- 4. LOGIC & CALCULATIONS ---
+    
+    /**
+     * 计算大分和小分
+     * @returns {object}
+     */
+    function calculateScores() {
+        let bigScoreMain = 0, bigScoreSub = 0;
+        let smallScoreMain = 0, smallScoreSub = 0;
+        const gameDetails = [];
+
+        STATE.games.forEach(game => {
+            const half1 = getHalfScores(game, 1);
+            const half2 = getHalfScores(game, 2);
+
+            smallScoreMain += half1.main + half2.main;
+            smallScoreSub += half1.sub + half2.sub;
+
+            if (half1.valid && half2.valid) {
+                const totalMain = half1.main + half2.main;
+                const totalSub = half1.sub + half2.sub;
+                if (totalMain > totalSub) bigScoreMain++;
+                else if (totalSub > totalMain) bigScoreSub++;
+            }
+            
+            gameDetails.push({
+                label: game.id.toUpperCase(),
+                main1: getHalfDisplay(game, 1, 'main'),
+                main2: getHalfDisplay(game, 2, 'main'),
+                sub1: getHalfDisplay(game, 1, 'sub'),
+                sub2: getHalfDisplay(game, 2, 'sub'),
+            });
+        });
+
+        return { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub, gameDetails };
+    }
+
+    /**
+     * 获取单个半场的分数
+     * @param {object} game
+     * @param {number} halfIndex
+     * @returns {{main: number, sub: number, valid: boolean}}
+     */
+    function getHalfScores(game, halfIndex) {
+        const POINTS = {
+            '4': { main: 5, sub: 0 },
+            '3': { main: 3, sub: 1 },
+            '2': { main: 2, sub: 2 },
+            '1': { main: 1, sub: 3 },
+            '0': { main: 0, sub: 5 }
+        };
+
+        const role = game[`role${halfIndex}`];
+        const result = game[`result${halfIndex}`];
+
+        if (!role || result === '' || result === null || result === undefined) {
+            return { main: 0, sub: 0, valid: false };
+        }
+        
+        const points = POINTS[result];
+
+        if (!points) {
+            return { main: 0, sub: 0, valid: false };
+        }
+
+        return { ...points, valid: true };
+    }
+    
+    /**
+     * 获取用于在表格中显示的半场结果字符串
+     * @param {object} game
+     * @param {number} halfIndex
+     * @param {string} teamType - 'main' 或 'sub'
+     * @returns {string}
+     */
+    function getHalfDisplay(game, halfIndex, teamType) {
+        const { main, sub, valid } = getHalfScores(game, halfIndex);
+        if (!valid) return '-';
+
+        const mainRole = game[`role${halfIndex}`];
+        const mainPrefix = mainRole === ROLES.hunter ? 'H' : 'S';
+        const subPrefix = mainRole === ROLES.hunter ? 'S' : 'H';
+        const time = game[`time${halfIndex}`];
+        const timeSuffix = time ? `(${time})` : '';
+
+        if (teamType === 'main') {
+            return `${mainPrefix}${main}${timeSuffix}`;
+        } else {
+            return `${subPrefix}${sub}${timeSuffix}`;
+        }
+    }
+
+
+    // --- 5. EVENT HANDLERS ---
+
+    function bindEventListeners() {
+        elements.nextButton.addEventListener('click', handleNextStep);
+        elements.restoreButton.addEventListener('click', handleRestoreState);
+        elements.addBoButton.addEventListener('click', handleAddBo);
+        elements.addTiebreakerButton.addEventListener('click', handleAddTiebreaker);
+        
+        elements.intermissionButton.addEventListener('click', handleToggleIntermission);
+        elements.matchEndButton.addEventListener('click', handleToggleMatchEnd);
+        elements.obsWindowButton.addEventListener('click', handleOpenOBSWindow);
+        
+        elements.matchesContainer.addEventListener('change', handleGameInputChange);
+        elements.matchesContainer.addEventListener('input', handleGameInputChange);
+    }
+
+    function handleNextStep() {
+        const mainTeam = elements.mainTeamSelect.value;
+        const subTeam = elements.subTeamSelect.value;
+        const matchMode = elements.matchModeSelect.querySelector('input:checked').value;
+        
+        if (!mainTeam || !subTeam) {
+            alert('请选择队伍');
+            return;
+        }
+
+        STATE.mainTeam = mainTeam;
+        STATE.subTeam = subTeam;
+        STATE.matchMode = matchMode;
+        
+        STATE.games = [];
+        const initialGameCount = MATCH_MODES[matchMode].initialGames;
+        for (let i = 1; i <= initialGameCount; i++) {
+            STATE.games.push({ id: `bo${i}` });
+        }
+        
+        elements.inputStage.style.display = 'none';
+        elements.outputStage.style.display = 'block';
+        elements.matchTitle.textContent = `${mainTeam} vs ${subTeam}`;
+        elements.matchInstructions.style.display = 'block';
+        
+        render();
+    }
+    
+    function handleGameInputChange(e) {
+        const target = e.target;
+        const gameDiv = target.closest('.game-instance');
+        if (!gameDiv) return;
+
+        const gameId = gameDiv.id;
+        const half = target.dataset.half;
+        const game = STATE.games.find(g => g.id === gameId);
+        if (!game) return;
+
+        if (target.classList.contains('role-select')) {
+            const role = target.value;
+            game[`role${half}`] = role;
+            game[`result${half}`] = '';
+            if (game[`time${half}`] !== undefined) game[`time${half}`] = '';
+            
+            const otherHalf = half === '1' ? '2' : '1';
+            const otherRoleSelect = gameDiv.querySelector(`.role-select[data-half="${otherHalf}"]`);
+            if (role) {
+                const oppositeRole = role === ROLES.hunter ? ROLES.survivor : ROLES.hunter;
+                game[`role${otherHalf}`] = oppositeRole;
+                game[`result${otherHalf}`] = '';
+                if(otherRoleSelect) otherRoleSelect.value = oppositeRole;
+            } else {
+                game[`role${otherHalf}`] = "";
+                game[`result${otherHalf}`] = '';
+                if(otherRoleSelect) otherRoleSelect.value = "";
+            }
+            renderMatchUI();
+            
+        } else if (target.classList.contains('score-select')) {
+            game[`result${half}`] = target.value;
+        } else if (target.classList.contains('time-input')) {
+            game[`time${half}`] = target.value;
+        }
+
+        render();
+    }
+
+    function handleAddBo() {
+        const nextBoNum = STATE.games.filter(g => g.id.startsWith('bo')).length + 1;
+        STATE.games.push({ id: `bo${nextBoNum}` });
+        render();
+    }
+    
+    function handleAddTiebreaker() {
+        STATE.games.push({ id: 'tiebreaker' });
+        render();
+    }
+
+    function handleToggleIntermission() {
+        STATE.isIntermission = !STATE.isIntermission;
+        elements.intermissionButton.textContent = STATE.isIntermission ? '结束场间' : '进入场间';
+        render();
+    }
+
+    function handleToggleMatchEnd() {
+        STATE.isMatchEnd = !STATE.isMatchEnd;
+        elements.matchEndButton.textContent = STATE.isMatchEnd ? '取消结束' : '比赛结束';
+        render();
+    }
+
+    // --- 6. DATA PERSISTENCE & OBS WINDOW ---
+
+    function saveStateToLocalStorage() {
+        localStorage.setItem('matchData', JSON.stringify(STATE));
+    }
+
+    function handleRestoreState() {
+        const savedData = localStorage.getItem('matchData');
+        if (savedData) {
+            STATE = JSON.parse(savedData);
+            
+            elements.mainTeamSelect.value = STATE.mainTeam;
+            elements.subTeamSelect.value = STATE.subTeam;
+            const matchModeRadio = elements.matchModeSelect.querySelector(`input[value="${STATE.matchMode}"]`);
+            if(matchModeRadio) matchModeRadio.checked = true;
+
+            elements.inputStage.style.display = 'none';
+            elements.outputStage.style.display = 'block';
+            elements.matchTitle.textContent = `${STATE.mainTeam} vs ${STATE.subTeam}`;
+            elements.matchInstructions.style.display = 'block';
+            
+            elements.restoredDataContainer.style.display = 'block';
+            elements.restoredDataContent.textContent = JSON.stringify(STATE, null, 2);
+            
+            render();
+        } else {
+            alert('没有找到任何保存的数据。');
+        }
+    }
+    
+    function handleOpenOBSWindow() {
         if (!obsWindow || obsWindow.closed) {
             obsWindow = window.open("", "obsWindow", "width=800,height=360");
-            obsWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>OBS捕获窗口</title>
-  <!-- 引入与主页面相同的CSS（如果有的话） -->
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    html, body {
-        height: 100%;
-        margin: 0;
-        position: relative;
-    }
-    body {
-        background: url('https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png') no-repeat center center fixed;
-        background-size: cover;
-    }
-    #background-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        z-index: 1;
-    }
-    #obs-results {
-        position: relative;
-        z-index: 2;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        box-sizing: border-box;
-        padding: 25px;
-        /* 全局荧光效果 */
-        color: #fff !important;
-        text-shadow: 0 0 10px rgba(255,255,255,0.8) !important;
-    }
-    /* 表格样式修正 */
-    #obs-results table {
-        margin: 0 auto;
-        border-collapse: separate;
-        border: 1px solid #fff;
-        background-color: transparent;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-        /* 确保继承荧光效果 */
-        color: inherit !important;
-    }
-    #obs-results th,
-    #obs-results td {
-        border: 1px solid #fff;
-        background-color: transparent;
-        padding: 5px;
-        /* 继承荧光效果 */
-        color: inherit !important;
-        text-shadow: inherit !important;
-    }
-    /* 特殊元素颜色修正 */
-    #obs-results .role-note,
-    #obs-results .intermission-alert {
-        color: #ffeb3b !important;
-        text-shadow: 0 0 10px rgba(255,235,59,0.8) !important;
-    }
-    /* 修改高亮样式：不使用背景色，而是设置文字颜色为黄色并加荧光 */
-    #obs-results .highlight {
-        background-color: transparent !important;
-        color: #ffeb3b !important;
-        text-shadow: 0 0 10px #ffeb3b, 0 0 20px #ffeb3b, 0 0 30px #ffeb3b !important;
-    }
-  </style>
-</head>
-<body>
-  <!-- 遮罩层 -->
-  <div id="background-overlay"></div>
-  <!-- OBS 结果显示区域 -->
-  <div id="obs-results"></div>
-</body>
-</html>`);
+            obsWindow.document.write(`
+                <!DOCTYPE html><html><head><meta charset="UTF-8"><title>OBS捕获窗口</title><link rel="stylesheet" href="styles.css">
+                <style>
+                    html, body { background: transparent; margin: 0; color: #fff; }
+                    body { background: url('${BackGroundImageUrl}') no-repeat center center fixed; background-size: cover; }
+                    #background-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1; }
+                    #obs-results { position: relative; z-index: 2; height: 100vh; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 10px rgba(255,255,255,0.8); }
+                    .highlight { color: #ffeb3b !important; text-shadow: 0 0 10px #ffeb3b, 0 0 20px #ffeb3b !important; }
+                </style></head><body><div id="background-overlay"></div><div id="obs-results"></div></body></html>
+            `);
             obsWindow.document.close();
+            setTimeout(updateOBSWindow, 100);
         } else {
             obsWindow.focus();
         }
-    });
-
-    const mainTeamSelect = document.getElementById('main-team');
-    const subTeamSelect = document.getElementById('sub-team');
-
-    // 初始化下拉框
-    function populateSelectOptions(selectElement, options) {
-        options.forEach(school => {
-            const option = document.createElement('option');
-            option.value = school;
-            option.textContent = school;
-            selectElement.appendChild(option);
-        });
     }
 
-    populateSelectOptions(mainTeamSelect, schools);
-    populateSelectOptions(subTeamSelect, schools);
-
-    document.getElementById('next-button').addEventListener('click', function() {
-        const mainTeam = mainTeamSelect.value;
-        const subTeam = subTeamSelect.value;
-        const gameMode = document.querySelector('input[name="gameMode"]:checked').value;
-         window.gameMode = gameMode;
-
-        if (mainTeam && subTeam) {
-            document.getElementById('input-stage').style.display = 'none';
-            document.getElementById('output-stage').style.display = 'block';
-            document.getElementById('match-title').textContent = `${mainTeam} vs ${subTeam}`;
-            document.getElementById('match-instructions').style.display = 'block';
-            createBO('bo1', mainTeam, subTeam);
-            createBO('bo2', mainTeam, subTeam);
-            if (gameMode === 'bo5') {
-                createBO('bo3', mainTeam, subTeam);
-            }
-            
-            boCount = (gameMode === 'bo5') ? 3 : 2;
-            
-            document.getElementById('add-bo').style.display = 'block';
-            saveData();
-        } else {
-            alert('请选择队伍');
-        }
-    });
-
-    document.getElementById('restore-button').addEventListener('click', restoreData);
-
-    // 绑定按钮事件
-    document.getElementById('toggle-intermission').addEventListener('click', toggleIntermission);
-    document.getElementById('toggle-match-end').addEventListener('click', toggleMatchEnd);
-});
-
-let boCount;
-
-document.getElementById('add-bo').addEventListener('click', function() {
-    const maxBoCount = (window.gameMode === 'bo5') ? 5 : 3;
-
-    if (boCount < maxBoCount) {
-        boCount++;
-        createBO(`bo${boCount}`, document.getElementById('main-team').value, document.getElementById('sub-team').value);
-        if (document.getElementById(`bo${boCount}-header`)) {
-            document.getElementById(`bo${boCount}-header`).style.display = 'table-cell';
-            document.getElementById(`bo${boCount}-result1`).style.display = 'table-cell';
-            document.getElementById(`bo${boCount}-result2`).style.display = 'table-cell';
-        }
-    }
-
-    if (boCount === maxBoCount) {
-        document.getElementById('add-bo').style.display = 'none';
-        document.getElementById('add-tiebreaker').style.display = 'block';
-    }
-    saveData();
-});
-
-document.getElementById('add-tiebreaker').addEventListener('click', function() {
-    createTiebreaker(document.getElementById('main-team').value, document.getElementById('sub-team').value);
-    if (document.getElementById('tiebreaker-header')) {
-        document.getElementById('tiebreaker-header').style.display = 'table-cell';
-        document.getElementById('tiebreaker-result1').style.display = 'table-cell';
-        document.getElementById('tiebreaker-result2').style.display = 'table-cell';
-    }
-    document.getElementById('add-tiebreaker').style.display = 'none';
-    saveData();
-});
-
-function restoreData() {
-    const savedData = localStorage.getItem('matchData');
-    if (savedData) {
-        const data = JSON.parse(savedData);
-        console.log('Restoring data:', data);
-        document.getElementById('main-team').value = data.mainTeam;
-        document.getElementById('sub-team').value = data.subTeam;
-        document.getElementById('next-button').click();
-        setTimeout(() => {
-            loadSavedData(data);
-            displayRestoredData(data);
-        }, 100);
-    } else {
-        alert('没有找到任何保存的数据。');
-    }
-}
-
-function saveData() {
-    const matchData = {
-        mainTeam: document.getElementById('main-team').value,
-        subTeam: document.getElementById('sub-team').value,
-        bos: [],
-        tiebreaker: null,
-    };
-
-    const boDivs = document.querySelectorAll('[id^=bo]');
-    boDivs.forEach(boDiv => {
-        const boId = boDiv.id;
-        const role1 = document.querySelector(`select[data-result-id="${boId}-result1"]`);
-        const result1 = document.querySelector(`select[data-id="${boId}-result1-main"]`);
-        const role2 = document.querySelector(`select[data-result-id="${boId}-result2"]`);
-        const result2 = document.querySelector(`select[data-id="${boId}-result2-main"]`);
-
-        if (role1 && result1 && role2 && result2) {
-            matchData.bos.push({
-                boId,
-                role1: role1.value,
-                result1: result1.value,
-                role2: role2.value,
-                result2: result2.value
-            });
-        }
-    });
-
-    const tiebreakerDiv = document.getElementById('tiebreaker');
-    if (tiebreakerDiv) {
-        const role1 = document.querySelector(`select[data-result-id="tiebreaker-result1"]`);
-        const result1 = document.querySelector(`select[data-id="tiebreaker-result1-main"]`);
-        const time1 = document.querySelector(`input[data-id="tiebreaker-result1-time"]`);
-        const role2 = document.querySelector(`select[data-result-id="tiebreaker-result2"]`);
-        const result2 = document.querySelector(`select[data-id="tiebreaker-result2-main"]`);
-        const time2 = document.querySelector(`input[data-id="tiebreaker-result2-time"]`);
-
-        if (role1 && result1 && time1 && role2 && result2 && time2) {
-            matchData.tiebreaker = {
-                role1: role1.value,
-                result1: result1.value,
-                time1: time1.value,
-                role2: role2.value,
-                result2: result2.value,
-                time2: time2.value
-            };
-        }
-    }
-
-    localStorage.setItem('matchData', JSON.stringify(matchData));
-    console.log('Data saved:', matchData);
-}
-
-function loadSavedData(data) {
-    data.bos.forEach(bo => {
-        setBOData(bo.boId, bo.role1, bo.result1, bo.role2, bo.result2);
-    });
-
-    if (data.tiebreaker) {
-        setTiebreakerData(
-            data.tiebreaker.role1,
-            data.tiebreaker.result1,
-            data.tiebreaker.time1,
-            data.tiebreaker.role2,
-            data.tiebreaker.result2,
-            data.tiebreaker.time2
-        );
-    }
-
-    updateResults();
-}
-
-function displayRestoredData(data) {
-    let restoredDataContent = '';
-
-    data.bos.forEach(bo => {
-        const mainTeam = data.mainTeam;
-        restoredDataContent += `${bo.boId.toUpperCase()} 上半:\n`;
-        restoredDataContent += `${mainTeam}（${bo.role1}）结果（${bo.result1}）\n`;
-        restoredDataContent += `${bo.boId.toUpperCase()} 下半:\n`;
-        restoredDataContent += `${mainTeam}（${bo.role2}）结果（${bo.result2}）\n\n`;
-    });
-
-    if (data.tiebreaker) {
-        restoredDataContent += `加赛:\n`;
-        restoredDataContent += `${data.mainTeam}（${data.tiebreaker.role1}）用了${data.tiebreaker.time1}秒结果（${data.tiebreaker.result1}）\n`;
-        restoredDataContent += `${data.mainTeam}（${data.tiebreaker.role2}）用了${data.tiebreaker.time2}秒结果（${data.tiebreaker.result2}）\n`;
-    }
-
-    document.getElementById('restored-data-content').textContent = restoredDataContent;
-    document.getElementById('restored-data').style.display = 'block';
-}
-
-function setBOData(boId, role1, result1, role2, result2) {
-    const role1Select = document.querySelector(`select[data-result-id="${boId}-result1"]`);
-    const result1Select = document.querySelector(`select[data-id="${boId}-result1-main"]`);
-    const role2Select = document.querySelector(`select[data-result-id="${boId}-result2"]`);
-    const result2Select = document.querySelector(`select[data-id="${boId}-result2-main"]`);
-
-    if (role1Select && result1Select && role2Select && result2Select) {
-        role1Select.value = role1;
-        updateScoreOptions(result1Select, role1);
-        result1Select.value = result1;
-
-        role2Select.value = role2;
-        updateScoreOptions(result2Select, role2);
-        result2Select.value = result2;
-
-        role1Select.dispatchEvent(new Event('change'));
-        result1Select.dispatchEvent(new Event('change'));
-        role2Select.dispatchEvent(new Event('change'));
-        result2Select.dispatchEvent(new Event('change'));
-    }
-}
-
-function setTiebreakerData(role1, result1, time1, role2, result2, time2) {
-    const role1Select = document.querySelector(`select[data-result-id="tiebreaker-result1"]`);
-    const result1Select = document.querySelector(`select[data-id="tiebreaker-result1-main"]`);
-    const time1Input = document.querySelector(`input[data-id="tiebreaker-result1-time"]`);
-    const role2Select = document.querySelector(`select[data-result-id="tiebreaker-result2"]`);
-    const result2Select = document.querySelector(`select[data-id="tiebreaker-result2-main"]`);
-    const time2Input = document.querySelector(`input[data-id="tiebreaker-result2-time"]`);
-
-    if (role1Select && result1Select && time1Input && role2Select && result2Select && time2Input) {
-        role1Select.value = role1;
-        updateScoreOptions(result1Select, role1);
-        result1Select.value = result1;
-        time1Input.value = time1;
-
-        role2Select.value = role2;
-        updateScoreOptions(result2Select, role2);
-        result2Select.value = result2;
-        time2Input.value = time2;
-
-        role1Select.dispatchEvent(new Event('change'));
-        result1Select.dispatchEvent(new Event('change'));
-        time1Input.dispatchEvent(new Event('input'));
-        role2Select.dispatchEvent(new Event('change'));
-        result2Select.dispatchEvent(new Event('change'));
-        time2Input.dispatchEvent(new Event('input'));
-    }
-}
-
-document.addEventListener('change', function(e) {
-    if (e.target && (e.target.classList.contains('role-select') || e.target.classList.contains('score-select') || e.target.classList.contains('time-input'))) {
-        saveData();
-    }
-});
-
-function createBO(id, mainTeam, subTeam) {
-    const boDiv = document.createElement('div');
-    boDiv.id = id;
-    boDiv.innerHTML = `
-        <h3>${id.toUpperCase()}</h3>
-        <div>
-            ${mainTeam}（<select class="role-select" data-main-team="${mainTeam}" data-sub-team="${subTeam}" data-result-id="${id}-result1">
-                <option value="未选择">未选择</option>
-                <option value="监管">监管</option>
-                <option value="求生">求生</option>
-            </select>）
-            游戏结果：<select class="score-select" data-id="${id}-result1-main"></select>
-        </div>
-        <div>
-            <strong>${id.toUpperCase()} 上半：</strong>${mainTeam}（<span class="role-display" data-id="${id}-result1-role"></span>）<span class="score-display" data-id="${id}-result1-main-display"></span>，
-            ${mainTeam}积<span class="score-points" data-id="${id}-result1-main-points"></span>分，${subTeam}积<span class="score-points" data-id="${id}-result1-sub-points"></span>分。
-            <br>比分为：<span class="score-result" data-id="${id}-result1"></span>。
-        </div>
-        <div>
-            ${mainTeam}（<select class="role-select" data-main-team="${mainTeam}" data-sub-team="${subTeam}" data-result-id="${id}-result2">
-                <option value="未选择">未选择</option>
-                <option value="求生">求生</option>
-                <option value="监管">监管</option>
-            </select>）
-            游戏结果：<select class="score-select" data-id="${id}-result2-main"></select>
-        </div>
-        <div>
-            <strong>${id.toUpperCase()} 下半：</strong>${mainTeam}（<span class="role-display" data-id="${id}-result2-role"></span>）<span class="score-display" data-id="${id}-result2-main-display"></span>，
-            ${mainTeam}积<span class="score-points" data-id="${id}-result2-main-points"></span>分，${subTeam}积<span class="score-points" data-id="${id}-result2-sub-points"></span>分。
-            <br>比分为：<span class="score-result" data-id="${id}-result2"></span>。
-        </div>
-    `;
-    document.getElementById('matches').appendChild(boDiv);
-
-    const selects = boDiv.getElementsByClassName('role-select');
-    Array.from(selects).forEach((select, index) => {
-        select.addEventListener('change', function() {
-            const role = select.value;
-            const scoreSelect = document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-main"]`);
-            updateScoreOptions(scoreSelect, role);
-
-            const roleDisplay = document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`);
-            roleDisplay.textContent = role;
-
-            const nextSelect = selects[(index + 1) % 2];
-            nextSelect.value = role === '监管' ? '求生' : '监管';
-            const nextScoreSelect = document.querySelector(`select[data-id="${nextSelect.getAttribute('data-result-id')}-main"]`);
-            updateScoreOptions(nextScoreSelect, nextSelect.value);
-
-            const nextRoleDisplay = document.querySelector(`span[data-id="${nextSelect.getAttribute('data-result-id')}-role"]`);
-            nextRoleDisplay.textContent = nextSelect.value;
-
-            updateResults();
-        });
-
-        updateScoreOptions(document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-main"]`), select.value);
-        document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`).textContent = select.value;
-    });
-
-    const inputs = boDiv.getElementsByClassName('score-select');
-    Array.from(inputs).forEach(input => {
-        input.addEventListener('change', updateResults);
-    });
-}
-
-function createTiebreaker(mainTeam, subTeam) {
-    const tiebreakerDiv = document.createElement('div');
-    tiebreakerDiv.id = 'tiebreaker';
-    tiebreakerDiv.innerHTML = `
-        <h3>加赛</h3>
-        <div>
-            ${mainTeam}（<select class="role-select" data-main-team="${mainTeam}" data-sub-team="${subTeam}" data-result-id="tiebreaker-result1">
-                <option value="未选择">未选择</option>
-                <option value="监管">监管</option>
-                <option value="求生">求生</option>
-            </select>）
-            游戏结果：<select class="score-select" data-id="tiebreaker-result1-main"></select>
-            <input type="text" class="time-input" placeholder="比赛时间" data-id="tiebreaker-result1-time">
-        </div>
-        <div>
-            <strong>加赛：</strong>${mainTeam}（<span class="role-display" data-id="tiebreaker-result1-role"></span>）用了<span class="time-display" data-id="tiebreaker-result1-time-display"></span><span class="score-display" data-id="tiebreaker-result1-main-display"></span>，
-            ${mainTeam}积<span class="score-points" data-id="tiebreaker-result1-main-points"></span>分，${subTeam}积<span class="score-points" data-id="tiebreaker-result1-sub-points"></span>分。
-            <br>比分为：<span class="score-result" data-id="tiebreaker-result1"></span>。
-        </div>
-        <div>
-            ${mainTeam}（<select class="role-select" data-main-team="${mainTeam}" data-sub-team="${subTeam}" data-result-id="tiebreaker-result2">
-                <option value="未选择">未选择</option>
-                <option value="求生">求生</option>
-                <option value="监管">监管</option>
-            </select>）
-            游戏结果：<select class="score-select" data-id="tiebreaker-result2-main"></select>
-            <input type="text" class="time-input" placeholder="比赛时间" data-id="tiebreaker-result2-time">
-        </div>
-        <div>
-            <strong>加赛：</strong>${mainTeam}（<span class="role-display" data-id="tiebreaker-result2-role"></span>）用了<span class="time-display" data-id="tiebreaker-result2-time-display"></span><span class="score-display" data-id="tiebreaker-result2-main-display"></span>，
-            ${mainTeam}积<span class="score-points" data-id="tiebreaker-result2-main-points"></span>分，${subTeam}积<span class="score-points" data-id="tiebreaker-result2-sub-points"></span>分。
-            <br>比分为：<span class="score-result" data-id="tiebreaker-result2"></span>。
-        </div>
-    `;
-    document.getElementById('matches').appendChild(tiebreakerDiv);
-
-    const selects = tiebreakerDiv.getElementsByClassName('role-select');
-    Array.from(selects).forEach((select, index) => {
-        select.addEventListener('change', function() {
-            const role = select.value;
-            const scoreSelect = document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-main"]`);
-            updateScoreOptions(scoreSelect, role);
-
-            const roleDisplay = document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`);
-            roleDisplay.textContent = role;
-
-            const nextSelect = selects[(index + 1) % 2];
-            nextSelect.value = role === '监管' ? '求生' : '监管';
-            const nextScoreSelect = document.querySelector(`select[data-id="${nextSelect.getAttribute('data-result-id')}-main"]`);
-            updateScoreOptions(nextScoreSelect, nextSelect.value);
-
-            const nextRoleDisplay = document.querySelector(`span[data-id="${nextSelect.getAttribute('data-result-id')}-role"]`);
-            nextRoleDisplay.textContent = nextSelect.value;
-
-            updateResults();
-        });
-
-        updateScoreOptions(document.querySelector(`select[data-id="${select.getAttribute('data-result-id')}-main"]`), select.value);
-        document.querySelector(`span[data-id="${select.getAttribute('data-result-id')}-role"]`).textContent = select.value;
-    });
-
-    const inputs = tiebreakerDiv.getElementsByClassName('score-select');
-    Array.from(inputs).forEach(input => {
-        input.addEventListener('change', updateResults);
-    });
-
-    const timeInputs = tiebreakerDiv.getElementsByClassName('time-input');
-    Array.from(timeInputs).forEach(input => {
-        input.addEventListener('input', updateResults);
-    });
-}
-
-function updateScoreOptions(scoreSelect, role) {
-    scoreSelect.innerHTML = '<option value="未选择">未选择</option>';
-    if (role === '监管') {
-        scoreSelect.innerHTML += `
-            <option value="4">四杀</option>
-            <option value="3">三杀</option>
-            <option value="2">平局</option>
-            <option value="1">一杀</option>
-            <option value="0">零杀</option>
-        `;
-    } else if (role === '求生') {
-        scoreSelect.innerHTML += `
-            <option value="4">四跑</option>
-            <option value="3">三跑</option>
-            <option value="2">平局</option>
-            <option value="1">一跑</option>
-            <option value="0">零跑</option>
-        `;
-    }
-}
-
-function updateResults() {
-    const selects = document.getElementsByClassName('role-select');
-    Array.from(selects).forEach(select => {
-        const resultId = select.getAttribute('data-result-id');
-        const mainScoreOption = document.querySelector(`select[data-id="${resultId}-main"]`).value;
-        const role = select.value;
-
-        let mainScore, subScore;
-
-        if (role === '未选择' || mainScoreOption === '未选择') {
-            document.querySelector(`span[data-id="${resultId}-main-display"]`).textContent = '';
-            document.querySelector(`span[data-id="${resultId}-main-points"]`).textContent = '';
-            document.querySelector(`span[data-id="${resultId}-sub-points"]`).textContent = '';
-            document.querySelector(`span[data-id="${resultId}-role"]`).textContent = '';
-            document.querySelector(`span[data-id="${resultId}"]`).textContent = '-';
-        } else if (role === '监管') {
-            switch (mainScoreOption) {
-                case '4':
-                    mainScore = 5;
-                    subScore = 0;
-                    break;
-                case '3':
-                    mainScore = 3;
-                    subScore = 1;
-                    break;
-                case '2':
-                    mainScore = 2;
-                    subScore = 2;
-                    break;
-                case '1':
-                    mainScore = 1;
-                    subScore = 3;
-                    break;
-                case '0':
-                    mainScore = 0;
-                    subScore = 5;
-                    break;
-            }
-            document.querySelector(`span[data-id="${resultId}-main-display"]`).textContent = `${mainScoreOption}杀`;
-            document.querySelector(`span[data-id="${resultId}-main-points"]`).textContent = mainScore;
-            document.querySelector(`span[data-id="${resultId}-sub-points"]`).textContent = subScore;
-            document.querySelector(`span[data-id="${resultId}-role"]`).textContent = role;
-            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${mainScore}:${subScore}`;
-        } else {
-            switch (mainScoreOption) {
-                case '4':
-                    mainScore = 5;
-                    subScore = 0;
-                    break;
-                case '3':
-                    mainScore = 3;
-                    subScore = 1;
-                    break;
-                case '2':
-                    mainScore = 2;
-                    subScore = 2;
-                    break;
-                case '1':
-                    mainScore = 1;
-                    subScore = 3;
-                    break;
-                case '0':
-                    mainScore = 0;
-                    subScore = 5;
-                    break;
-            }
-            document.querySelector(`span[data-id="${resultId}-main-display"]`).textContent = `${mainScoreOption}跑`;
-            document.querySelector(`span[data-id="${resultId}-main-points"]`).textContent = mainScore;
-            document.querySelector(`span[data-id="${resultId}-sub-points"]`).textContent = subScore;
-            document.querySelector(`span[data-id="${resultId}-role"]`).textContent = role;
-            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${mainScore}-${subScore}`;
-        }
-    });
-
-    const timeInputs = document.getElementsByClassName('time-input');
-    Array.from(timeInputs).forEach(input => {
-        const resultId = input.getAttribute('data-id').replace('-time', '');
-        const time = input.value;
-        if (time) {
-            const seconds = formatTimeToSeconds(time);
-            document.querySelector(`span[data-id="${resultId}-time-display"]`).textContent = `${seconds}秒`;
-            const scoreResult = document.querySelector(`span[data-id="${resultId}"]`).textContent;
-            document.querySelector(`span[data-id="${resultId}"]`).textContent = `${scoreResult}(${seconds})`;
-        }
-    });
-
-    // 更新新表格
-    updateResultTableNew();
-}
-
-function formatTimeToSeconds(time) {
-    const timeParts = time.split(/[:：]/);
-
-    if (timeParts.length === 2) {
-        const [minutes, seconds] = timeParts.map(Number);
-        return minutes * 60 + seconds;
-    } else {
-        return Number(time);
-    }
-}
-
-// 找到 updateResultTableNew 函数，把它整个替换成下面的代码
-function updateResultTableNew() {
-    const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub } = calculateScores();
-    const mainTeam = document.getElementById('main-team').value || '主队';
-    const subTeam = document.getElementById('sub-team').value || '客队';
-
-    let winningTeam = null;
-    if (isMatchEnd) {
-        if (bigScoreMain > bigScoreSub) {
-            winningTeam = 'main';
-        } else if (bigScoreSub > bigScoreMain) {
-            winningTeam = 'sub';
-        } else {
-            if (smallScoreMain > smallScoreSub) {
-                winningTeam = 'main';
-            } else if (smallScoreSub > smallScoreMain) {
-                winningTeam = 'sub';
-            }
-        }
-    }
-
-    let mainDisplay = mainTeam;
-    let subDisplay = subTeam;
-    if (isMatchEnd) {
-        if (winningTeam === 'main') {
-            mainDisplay = `<span class="highlight">${mainTeam}</span>`;
-        } else if (winningTeam === 'sub') {
-            subDisplay = `<span class="highlight">${subTeam}</span>`;
-        }
-    }
-
-    const headerHTML = `
-        <div class="match-header" style="text-align: center; margin-bottom: 10px;">
-            <h2 style="margin: 0; font-size: 26px;">${mainDisplay} vs ${subDisplay}</h2>
-            <div class="big-score" style="font-size: 22px; margin: 2px 0;">大分 ${bigScoreMain}:${bigScoreSub}</div>
-            <div class="small-score" style="font-size: 18px; margin: 2px 0;">小分 ${smallScoreMain}:${smallScoreSub}</div>
-            ${document.getElementById('intermission-alert') ? '<div class="intermission-alert" style="color: #ffeb3b; font-size: 18px;">场间休息中，请耐心等待～</div>' : ''}
-        </div>
-    `;
-    
-    // 根据赛制决定要渲染的游戏列表
-    const games = [
-        { id: "bo1", label: "GAME1" },
-        { id: "bo2", label: "GAME2" },
-        { id: "bo3", label: "GAME3" },
-        { id: "tiebreaker", label: "TIEBREAKER" },
-    ];
-    if (window.gameMode === 'bo5') {
-        games.push({ id: "bo4", label: "GAME4" });
-        games.push({ id: "bo5", label: "GAME5" });
-    }
-
-    let tableHTML = `<div style="padding: 0 25px; overflow-x:auto;"> 
-        ${headerHTML}
-        <table id="obs-new-table" border="1" cellspacing="0" cellpadding="5" style="width:100%; margin:0 auto;">
-            <thead>
-                <tr>
-                    <th rowspan="2">学校/队伍</th>`;
-    games.forEach(game => {
-        tableHTML += `<th colspan="2">${game.label}</th>`;
-    });
-    tableHTML += `</tr><tr>`;
-    games.forEach(game => {
-        tableHTML += `<th>上  半</th><th>下  半</th>`;
-    });
-    tableHTML += `</tr></thead><tbody>`;
-
-    const mainHighlight = (winningTeam === 'main') ? ' class="highlight"' : '';
-    tableHTML += `<tr><td${mainHighlight}>${mainTeam}</td>`;
-    games.forEach(game => {
-        const firstHalf = getHalfDisplay(game.id, 'result1').main;
-        const secondHalf = getHalfDisplay(game.id, 'result2').main;
-        const highlight = (winningTeam === 'main') ? ' class="highlight"' : '';
-        tableHTML += `<td${highlight}>${firstHalf}</td><td${highlight}>${secondHalf}</td>`;
-    });
-    tableHTML += `</tr>`;
-
-    const subHighlight = (winningTeam === 'sub') ? ' class="highlight"' : '';
-    tableHTML += `<tr><td${subHighlight}>${subTeam}</td>`;
-    games.forEach(game => {
-        const firstHalf = getHalfDisplay(game.id, 'result1').sub;
-        const secondHalf = getHalfDisplay(game.id, 'result2').sub;
-        const highlight = (winningTeam === 'sub') ? ' class="highlight"' : '';
-        tableHTML += `<td${highlight}>${firstHalf}</td><td${highlight}>${secondHalf}</td>`;
-    });
-    tableHTML += `</tr></tbody></table>
-        <div style="color: #ffeb3b; font-size: 12px; text-align: center; margin-top: 5px;" class="role-note">H为监管 S为求生</div>
-    </div>`;
-
-    const resultsContainer = document.getElementById('results');
-    if (resultsContainer) {
-        resultsContainer.innerHTML = tableHTML;
-    }
-
-    // OBS窗口更新逻辑
     function updateOBSWindow() {
         if (obsWindow && !obsWindow.closed) {
-            const resultsDiv = document.getElementById('results');
+            const resultsDiv = obsWindow.document.getElementById('obs-results');
             if (resultsDiv) {
-                obsWindow.document.getElementById('obs-results').innerHTML = resultsDiv.outerHTML;
+                resultsDiv.innerHTML = elements.resultsContainer.innerHTML;
             }
         }
     }
-    updateOBSWindow();
-}
 
 
-function calculateScores() {
-    let bigMain = 0, bigSub = 0;
-    let smallMain = 0, smallSub = 0;
-    // 根据赛制决定计算分数的BO列表
-    const games = ['bo1', 'bo2', 'bo3', 'tiebreaker'];
-    if (window.gameMode === 'bo5') {
-        games.push('bo4', 'bo5');
-    }
-
-    games.forEach(gameId => {
-        const result1 = getHalfScores(gameId, 'result1');
-        const result2 = getHalfScores(gameId, 'result2');
-
-        // 小分累加
-        smallMain += result1.main + result2.main;
-        smallSub += result1.sub + result2.sub;
-
-        // 大分计算
-        if (result1.valid && result2.valid) {
-            const totalMain = result1.main + result2.main;
-            const totalSub = result1.sub + result2.sub;
-            if (totalMain > totalSub) bigMain++;
-            else if (totalSub > totalMain) bigSub++;
-        }
-    });
-
-    return {
-        bigScoreMain: bigMain,
-        bigScoreSub: bigSub,
-        smallScoreMain: smallMain,
-        smallScoreSub: smallSub
-    };
-}
-
-// 新增：获取半场分数（数值）
-function getHalfScores(gameId, half) {
-    const roleSelect = document.querySelector(`select[data-result-id="${gameId}-${half}"]`);
-    const scoreSelect = document.querySelector(`select[data-id="${gameId}-${half}-main"]`);
-    
-    if (!roleSelect || !scoreSelect || 
-        roleSelect.value === '未选择' || 
-        scoreSelect.value === '未选择') {
-        return { main: 0, sub: 0, valid: false };
-    }
-
-    const option = scoreSelect.value;
-    let main = 0, sub = 0;
-    switch(option) {
-        case '4': main = 5; sub = 0; break;
-        case '3': main = 3; sub = 1; break;
-        case '2': main = 2; sub = 2; break;
-        case '1': main = 1; sub = 3; break;
-        case '0': main = 0; sub = 5; break;
-    }
-    return { main, sub, valid: true };
-}
-
-function getHalfDisplay(gameId, half) {
-    const scores = getHalfScores(gameId, half);
-    const roleSelect = document.querySelector(`select[data-result-id="${gameId}-${half}"]`);
-    
-    let displayMain = '', displaySub = '';
-    if (scores.valid) {
-        const role = roleSelect.value;
-        const prefixMain = role === '监管' ? 'H' : (role === '求生' ? 'S' : '');
-        const prefixSub = role === '监管' ? 'S' : (role === '求生' ? 'H' : '');
+    // --- 7. INITIALIZATION ---
+    /**
+     * 程序入口
+     */
+    function init() {
+        const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
+        elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
+        elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
         
-        // 处理加赛时间显示
-        let timeSuffix = '';
-        if (gameId === 'tiebreaker') {
-            const timeInput = document.querySelector(`input[data-id="${gameId}-${half}-time"]`);
-            if (timeInput && timeInput.value) timeSuffix = `(${timeInput.value})`;
-        }
-
-        displayMain = `${prefixMain}${scores.main}${timeSuffix}`;
-        displaySub = `${prefixSub}${scores.sub}${timeSuffix}`;
+        bindEventListeners();
     }
-    return { main: displayMain || '-', sub: displaySub || '-' };
-}
 
-function updateOBSWindow() {
-    if (obsWindow && !obsWindow.closed) {
-        const resultsDiv = document.getElementById('results');
-        if (resultsDiv) {
-            obsWindow.document.getElementById('obs-results').innerHTML = resultsDiv.outerHTML;
-        }
-    }
-}
-
-// 新增功能函数
-let isIntermission = false;
-let isMatchEnd = false;
-
-function toggleIntermission() {
-    const btn = document.getElementById('toggle-intermission');
-    const alertDiv = document.getElementById('intermission-alert');
-    
-    if (!isIntermission) {
-        const newAlert = document.createElement('div');
-        newAlert.id = 'intermission-alert';
-        newAlert.className = 'intermission-alert';
-        newAlert.style.cssText = 'color: #ffeb3b; font-size: 18px; text-align: center; text-shadow: 0 0 10px #ffeb3b;';
-        newAlert.textContent = '场间休息中，请耐心等待～';
-        document.querySelector('.match-header').appendChild(newAlert);
-        btn.textContent = '结束场间';
-    } else {
-        if (alertDiv) alertDiv.remove();
-        btn.textContent = '进入场间';
-    }
-    isIntermission = !isIntermission;
-    updateResultTableNew();
-}
-
-function toggleMatchEnd() {
-    const btn = document.getElementById('toggle-match-end');
-    if (!isMatchEnd) {
-        btn.textContent = '取消结束';
-    } else {
-        btn.textContent = '比赛结束';
-    }
-    isMatchEnd = !isMatchEnd;
-    updateResultTableNew();
-}
+    init();
+});
