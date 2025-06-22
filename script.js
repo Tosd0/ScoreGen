@@ -118,6 +118,8 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('next-button').addEventListener('click', function() {
         const mainTeam = mainTeamSelect.value;
         const subTeam = subTeamSelect.value;
+        const gameMode = document.querySelector('input[name="gameMode"]:checked').value;
+         window.gameMode = gameMode;
 
         if (mainTeam && subTeam) {
             document.getElementById('input-stage').style.display = 'none';
@@ -126,7 +128,12 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('match-instructions').style.display = 'block';
             createBO('bo1', mainTeam, subTeam);
             createBO('bo2', mainTeam, subTeam);
-            createBO('bo3', mainTeam, subTeam);
+            if (gameMode === 'bo5') {
+                createBO('bo3', mainTeam, subTeam);
+            }
+            
+            boCount = (gameMode === 'bo5') ? 3 : 2;
+            
             document.getElementById('add-bo').style.display = 'block';
             saveData();
         } else {
@@ -141,17 +148,22 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('toggle-match-end').addEventListener('click', toggleMatchEnd);
 });
 
-let boCount = 3;
+let boCount;
 
 document.getElementById('add-bo').addEventListener('click', function() {
-    boCount++;
-    createBO(`bo${boCount}`, document.getElementById('main-team').value, document.getElementById('sub-team').value);
-    if (document.getElementById(`bo${boCount}-header`)) {
-        document.getElementById(`bo${boCount}-header`).style.display = 'table-cell';
-        document.getElementById(`bo${boCount}-result1`).style.display = 'table-cell';
-        document.getElementById(`bo${boCount}-result2`).style.display = 'table-cell';
+    const maxBoCount = (window.gameMode === 'bo5') ? 5 : 3;
+
+    if (boCount < maxBoCount) {
+        boCount++;
+        createBO(`bo${boCount}`, document.getElementById('main-team').value, document.getElementById('sub-team').value);
+        if (document.getElementById(`bo${boCount}-header`)) {
+            document.getElementById(`bo${boCount}-header`).style.display = 'table-cell';
+            document.getElementById(`bo${boCount}-result1`).style.display = 'table-cell';
+            document.getElementById(`bo${boCount}-result2`).style.display = 'table-cell';
+        }
     }
-    if (boCount === 5) {
+
+    if (boCount === maxBoCount) {
         document.getElementById('add-bo').style.display = 'none';
         document.getElementById('add-tiebreaker').style.display = 'block';
     }
@@ -593,12 +605,12 @@ function formatTimeToSeconds(time) {
     }
 }
 
+// 找到 updateResultTableNew 函数，把它整个替换成下面的代码
 function updateResultTableNew() {
     const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub } = calculateScores();
     const mainTeam = document.getElementById('main-team').value || '主队';
     const subTeam = document.getElementById('sub-team').value || '客队';
 
-    // 判断胜利队伍
     let winningTeam = null;
     if (isMatchEnd) {
         if (bigScoreMain > bigScoreSub) {
@@ -614,7 +626,6 @@ function updateResultTableNew() {
         }
     }
 
-    // 动态生成标题（保持原样）
     let mainDisplay = mainTeam;
     let subDisplay = subTeam;
     if (isMatchEnd) {
@@ -633,6 +644,18 @@ function updateResultTableNew() {
             ${document.getElementById('intermission-alert') ? '<div class="intermission-alert" style="color: #ffeb3b; font-size: 18px;">场间休息中，请耐心等待～</div>' : ''}
         </div>
     `;
+    
+    // 根据赛制决定要渲染的游戏列表
+    const games = [
+        { id: "bo1", label: "GAME1" },
+        { id: "bo2", label: "GAME2" },
+        { id: "bo3", label: "GAME3" },
+        { id: "tiebreaker", label: "TIEBREAKER" },
+    ];
+    if (window.gameMode === 'bo5') {
+        games.push({ id: "bo4", label: "GAME4" });
+        games.push({ id: "bo5", label: "GAME5" });
+    }
 
     let tableHTML = `<div style="padding: 0 25px; overflow-x:auto;"> 
         ${headerHTML}
@@ -640,14 +663,6 @@ function updateResultTableNew() {
             <thead>
                 <tr>
                     <th rowspan="2">学校/队伍</th>`;
-    const games = [
-        { id: "bo1", label: "GAME1" },
-        { id: "bo2", label: "GAME2" },
-        { id: "bo3", label: "GAME3" },
-        { id: "bo4", label: "GAME4" },
-        { id: "bo5", label: "GAME5" },
-        { id: "tiebreaker", label: "TIEBREAKER" }
-    ];
     games.forEach(game => {
         tableHTML += `<th colspan="2">${game.label}</th>`;
     });
@@ -657,7 +672,6 @@ function updateResultTableNew() {
     });
     tableHTML += `</tr></thead><tbody>`;
 
-    // 生成主队行（添加高亮效果）
     const mainHighlight = (winningTeam === 'main') ? ' class="highlight"' : '';
     tableHTML += `<tr><td${mainHighlight}>${mainTeam}</td>`;
     games.forEach(game => {
@@ -668,7 +682,6 @@ function updateResultTableNew() {
     });
     tableHTML += `</tr>`;
 
-    // 生成客队行（添加高亮效果）
     const subHighlight = (winningTeam === 'sub') ? ' class="highlight"' : '';
     tableHTML += `<tr><td${subHighlight}>${subTeam}</td>`;
     games.forEach(game => {
@@ -686,7 +699,7 @@ function updateResultTableNew() {
         resultsContainer.innerHTML = tableHTML;
     }
 
-    // OBS窗口更新逻辑（保持原样）
+    // OBS窗口更新逻辑
     function updateOBSWindow() {
         if (obsWindow && !obsWindow.closed) {
             const resultsDiv = document.getElementById('results');
@@ -699,13 +712,15 @@ function updateResultTableNew() {
 }
 
 
-
-// 计算大分和小分
 function calculateScores() {
     let bigMain = 0, bigSub = 0;
     let smallMain = 0, smallSub = 0;
+    // 根据赛制决定计算分数的BO列表
+    const games = ['bo1', 'bo2', 'bo3', 'tiebreaker'];
+    if (window.gameMode === 'bo5') {
+        games.push('bo4', 'bo5');
+    }
 
-    const games = ['bo1', 'bo2', 'bo3', 'bo4', 'bo5', 'tiebreaker'];
     games.forEach(gameId => {
         const result1 = getHalfScores(gameId, 'result1');
         const result2 = getHalfScores(gameId, 'result2');
@@ -714,7 +729,7 @@ function calculateScores() {
         smallMain += result1.main + result2.main;
         smallSub += result1.sub + result2.sub;
 
-        // 大分计算（需要上下半场都有效）
+        // 大分计算
         if (result1.valid && result2.valid) {
             const totalMain = result1.main + result2.main;
             const totalSub = result1.sub + result2.sub;

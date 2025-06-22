@@ -23,6 +23,11 @@
         <select id="sub-team">
           <option value="" disabled selected>请选择客场队伍</option>
         </select>
+      <div id="game-mode-select" style="margin-top: 10px;">
+        <label for="game-mode">赛制选择：</label>
+        <label><input type="radio" name="gameMode" value="bo5" checked> BO5</label>
+        <label><input type="radio" name="gameMode" value="bo3"> BO3</label>
+      </div>
       </div>
       <div id="button-container">
         <button id="document-button" onclick="window.location.href='./docs/document.html'">使用说明</button>
@@ -40,7 +45,7 @@
         <pre id="restored-data-content"></pre>
       </div>
       <div id="matches"></div>
-      <button id="add-bo" style="display:none;">添加BO3</button>
+      <button id="add-bo" style="display:none;">添加场次</button>
       <button id="add-tiebreaker" style="display:none;">添加加赛</button>
 
       <div id="match-controls" style="margin: 10px 0;">
