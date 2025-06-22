@@ -1,77 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IVBL 计分板</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script src="https://unpkg.com/@vercel/analytics/dist/vercel-analytics.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>IVBL 计分板</h1>
-    <div id="input-stage">
-      <div>
-        <label for="main-team">主场队伍：</label>
-        <select id="main-team">
-          <option value="" disabled selected>请选择主场队伍</option>
-        </select>
+
+  <div class="main-container">
+    <header class="app-header">
+      <h1>IVBL 计分板</h1>
+      <p class="version">v3.1.0 REFACTOR</p>
+    </header>
+
+    <div id="input-stage" class="card active-stage">
+      <div class="card-body">
+        <h2 class="card-title">比赛配置</h2>
+        
+        <div class="team-selectors">
+          <select id="main-team" class="team-select">
+            <option value="" disabled selected>选择主场队伍</option>
+          </select>
+          <span class="vs-divider">VS</span>
+          <select id="sub-team" class="team-select">
+            <option value="" disabled selected>选择客场队伍</option>
+          </select>
+        </div>
+        
+        <div id="game-mode-select" class="mode-switcher">
+          <label class="mode-label">赛制选择:</label>
+          <div class="mode-options">
+            <input type="radio" id="bo3" name="gameMode" value="bo3" checked>
+            <label for="bo3">BO3</label>
+            <input type="radio" id="bo5" name="gameMode" value="bo5">
+            <label for="bo5">BO5</label>
+          </div>
+        </div>
       </div>
-      <div>
-        <label for="sub-team">客场队伍：</label>
-        <select id="sub-team">
-          <option value="" disabled selected>请选择客场队伍</option>
-        </select>
-      <div id="game-mode-select" style="margin-top: 10px;">
-        <label for="game-mode">赛制选择：</label>
-        <label><input type="radio" name="gameMode" value="bo5" checked> BO5</label>
-        <label><input type="radio" name="gameMode" value="bo3"> BO3</label>
-      </div>
-      </div>
-      <div id="button-container">
-        <button id="document-button" onclick="window.location.href='./docs/document.html'">使用说明</button>
-        <button id="next-button">下一步</button>
-        <button id="restore-button">恢复数据</button>
+      <div class="card-footer" id="button-container">
+        <button id="document-button" class="btn btn-secondary" onclick="window.location.href='./docs/document.html'">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1-8h-2V7h2v2z"/></svg>
+          使用说明
+        </button>
+        <button id="restore-button" class="btn btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18z"/></svg>
+          恢复数据
+        </button>
+        <button id="next-button" class="btn btn-primary">
+          下一步
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
+        </button>
       </div>
     </div>
-    <div id="output-stage" style="display:none;">
-      <h2 id="match-title"></h2>
-      <p id="match-instructions" style="font-size: 20px; color: #ff6161; display:none; text-align: center;">
-        填写表格中的比赛队伍时，请直接复制上面标题一行的文字
-      </p>
-      <div id="restored-data" style="display:none; border: 2px solid #000; padding: 10px; margin-bottom: 20px;">
-        <h3>上次填写的数据：</h3>
-        <pre id="restored-data-content"></pre>
-      </div>
-      <div id="matches"></div>
-      <button id="add-bo" style="display:none;">添加场次</button>
-      <button id="add-tiebreaker" style="display:none;">添加加赛</button>
 
-      <div id="match-controls" style="margin: 10px 0;">
-          <button id="toggle-intermission">进入场间</button>
-          <button id="toggle-match-end">比赛结束</button>
-      </div>
+    <div id="output-stage" class="card">
+      <div class="card-body">
+        <h2 id="match-title" class="card-title"></h2>
+        <p id="match-instructions" style="display:none; text-align: center; color: #aaa; font-size: 14px; margin-bottom: 20px;">
+          填写表格时，请直接复制上方标题队伍名称
+        </p>
 
-      <div id="results">
+        <div id="restored-data" style="display:none;" class="restore-info">
+          <h3>上次填写的数据：</h3>
+          <pre id="restored-data-content"></pre>
+        </div>
+        
+        <div id="matches" class="matches-container"></div>
+        
+        <div class="action-buttons">
+            <button id="add-bo" class="btn btn-secondary btn-add" style="display:none;">添加场次</button>
+            <button id="add-tiebreaker" class="btn btn-secondary btn-add" style="display:none;">添加加赛</button>
         </div>
 
-      <button id="open-obs-window">打开OBS捕获窗口</button>
+        <div id="match-controls" class="match-controls">
+            <button id="toggle-intermission" class="btn btn-control">进入场间</button>
+            <button id="toggle-match-end" class="btn btn-control">比赛结束</button>
+        </div>
+        
+        <div id="results-wrapper" class="results-wrapper">
+            <div id="results"></div>
+        </div>
+
+      </div>
+      <div class="card-footer">
+        <button id="open-obs-window" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+          打开OBS捕获窗口
+        </button>
+      </div>
     </div>
   </div>
 
-  <footer>
-    <div>
-      <a href="https://github.com/Tosd0/ScoreGen/" target="_blank">
-        <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub logo" style="width:20px; height:20px;"> GitHub Repo
-      </a>
-    </div>
-    <div>
-      <a href="https://www.vercel.com/">
-        <img src="https://assets.vercel.com/image/upload/front/favicon/vercel/favicon.ico" alt="Vercel logo" style="width:20px; height:20px;"> Deployment
-      </a>
-    </div>
-    <div>v3.0.0 REFACTOR</div>
+  <footer class="app-footer">
+    <a href="https://github.com/Tosd0/ScoreGen/" target="_blank">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span>GitHub Repo</span>
+    </a>
+    <span>/</span>
+    <a href="https://www.vercel.com/" target="_blank">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L2 22h20L12 2z"/></svg>
+        <span>Deployment</span>
+    </a>
+    <span>/</span>
     <div>Author: Tosd0</div>
   </footer>
 

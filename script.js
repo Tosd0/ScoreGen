@@ -322,8 +322,8 @@ document.addEventListener("DOMContentLoaded", () => {
             STATE.games.push({ id: `bo${i}` });
         }
         
-        elements.inputStage.style.display = 'none';
-        elements.outputStage.style.display = 'block';
+        elements.inputStage.classList.remove('active-stage');
+        elements.outputStage.classList.add('active-stage');
         elements.matchTitle.textContent = `${mainTeam} vs ${subTeam}`;
         elements.matchInstructions.style.display = 'block';
         
@@ -408,8 +408,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const matchModeRadio = elements.matchModeSelect.querySelector(`input[value="${STATE.matchMode}"]`);
             if(matchModeRadio) matchModeRadio.checked = true;
 
-            elements.inputStage.style.display = 'none';
-            elements.outputStage.style.display = 'block';
+            elements.inputStage.classList.remove('active-stage');
+            elements.outputStage.classList.add('active-stage');
             elements.matchTitle.textContent = `${STATE.mainTeam} vs ${STATE.subTeam}`;
             elements.matchInstructions.style.display = 'block';
             
