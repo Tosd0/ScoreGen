@@ -1,9 +1,10 @@
 /**
  * IVBL 赛果填写辅助工具
- * @version 3.0.0 Refactored
+ * @version 3.3.0
  * @author Tosd0, Refactored by Gemini
  */
 
+const clerkPublishableKey = "pk_test_Y2FyaW5nLXJlZGZpc2gtMzQuY2xlcmsuYWNjb3VudHMuZGV2JA"
 const BackGroundImageUrl = "https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png";
 
 const SCHOOLS = [
@@ -13,6 +14,13 @@ const SCHOOLS = [
 
 document.addEventListener("DOMContentLoaded", () => {
     // --- 1. APP-WIDE CONSTANTS & STATE ---
+
+    // Clerk initialization
+    const clerk = new Clerk(clerkPublishableKey);
+    clerk.load().then(() => {
+        const userButtonDiv = document.getElementById('user-button');
+        clerk.mountUserButton(userButtonDiv);
+    });
 
     // 定义全局常量
     const ROLES = {
@@ -303,6 +311,13 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         const contentBlocks = [];
+        contentBlocks.push({
+            "object": "block",
+            "type": "heading_2",
+            "heading_2": {
+                "rich_text": [{ "type": "text", "text": { "content": "比赛结果" } }]
+            }
+        })
         STATE.games.forEach(game => {
             contentBlocks.push({
                 "object": "block",
@@ -350,7 +365,7 @@ document.addEventListener("DOMContentLoaded", () => {
             children: contentBlocks
         };
         
-        console.log("直接生成给Notion API的最终Payload:", JSON.stringify(payload, null, 2));
+        // console.log("直接生成给Notion API的最终Payload:", JSON.stringify(payload, null, 2));
         return payload;
     }
 
@@ -467,14 +482,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function handleSendToNotion() {
+        if (!clerk.user) {
+            alert('请先登录。');
+            return;
+        }
+
         const data = collectDataForNotion();
         
         try {
-            // '/api/send-to-notion' 就是我们之后要在Vercel上创建的后端函数地址
+            const token = await clerk.session.getToken();
+
             const response = await fetch('/api/send-to-notion', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify(data),
             });
