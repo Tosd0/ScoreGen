@@ -14,14 +14,6 @@ const SCHOOLS = [
 
 document.addEventListener("DOMContentLoaded", () => {
     // --- 1. APP-WIDE CONSTANTS & STATE ---
-
-    // Clerk initialization
-    const clerk = new Clerk(clerkPublishableKey);
-    clerk.load().then(() => {
-        const userButtonDiv = document.getElementById('user-button');
-        clerk.mountUserButton(userButtonDiv);
-    });
-
     // 定义全局常量
     const ROLES = {
         hunter: '监管',
@@ -64,8 +56,36 @@ document.addEventListener("DOMContentLoaded", () => {
         restoreButton: document.getElementById('restore-button'),
         obsWindowButton: document.getElementById('open-obs-window'),
         intermissionButton: document.getElementById('toggle-intermission'),
-        matchEndButton: document.getElementById('toggle-match-end')
+        matchEndButton: document.getElementById('toggle-match-end'),
+        // login
+        loginContainer: document.getElementById('login-container'),
+        appContainer: document.getElementById('app-container'),
+        clerkSigninComponent: document.getElementById('clerk-signin'),
+        userButtonComponent: document.getElementById('user-button'),
     };
+
+    // Clerk initialization
+    const clerk = new Clerk(clerkPublishableKey);
+    clerk.load();
+
+    // --- 3. 监听登录状态变化 ---
+    clerk.addListener(({ user }) => {
+        if (user) {
+            console.log("用户已登录:", user.id);
+            elements.loginContainer.style.display = 'none';
+            elements.appContainer.style.display = 'block';
+            
+            clerk.mountUserButton(elements.userButtonComponent);
+        } else {
+            console.log("用户未登录");
+            elements.loginContainer.style.display = 'block';
+            elements.appContainer.style.display = 'none';
+
+            clerk.mountSignIn(elements.clerkSigninComponent);
+        }
+    });
+
+    bindEventListeners();
 
     // --- 3. UI RENDERING FUNCTIONS ---
 
