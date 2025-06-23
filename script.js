@@ -285,6 +285,75 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /**
+     * 收集并直接格式化为 Notion API pages.create 方法所需的 JSON 格式
+     * @returns {object} 一个包含 properties 和 children 的对象
+     */
+    function collectDataForNotion() {
+        const { mainTeam, subTeam } = STATE;
+
+        const pageProperties = {
+            "标题": {
+                "title": [{ "text": { "content": `${mainTeam} vs ${subTeam}` } }]
+            },
+            "主场": { "select": { "name": mainTeam } },
+            "客场": { "select": { "name": subTeam } },
+            "比赛状态": { "status": { "name": "已结束" } },
+            "日期": { "date": { "start": new Date().toISOString().split('T')[0] } },
+        };
+
+        const contentBlocks = [];
+        STATE.games.forEach(game => {
+            contentBlocks.push({
+                "object": "block",
+                "type": "heading_3",
+                "heading_3": {
+                    "rich_text": [{ "type": "text", "text": { "content": game.id.toUpperCase() } }]
+                }
+            });
+
+            const half1Result = getHalfScores(game, 1);
+            if(half1Result.valid) {
+                const mainTeamRole = game.role1;
+                const text = mainTeamRole === '监管'
+                    ? `上半场 ${half1Result.main}监(${game.time1 || ''}) : ${half1Result.sub}求`
+                    : `上半场 ${half1Result.main}求(${game.time1 || ''}) : ${half1Result.sub}监`;
+
+                contentBlocks.push({
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{ "type": "text", "text": { "content": text.replace(/\(\)/g, '') } }]
+                    }
+                });
+            }
+            
+            const half2Result = getHalfScores(game, 2);
+            if(half2Result.valid) {
+                const mainTeamRole = game.role2;
+                const text = mainTeamRole === '监管'
+                    ? `下半场 ${half2Result.main}监(${game.time2 || ''}) : ${half2Result.sub}求`
+                    : `下半场 ${half2Result.main}求(${game.time2 || ''}) : ${half2Result.sub}监`;
+                
+                contentBlocks.push({
+                    "object": "block",
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{ "type": "text", "text": { "content": text.replace(/\(\)/g, '') } }]
+                    }
+                });
+            }
+        });
+
+        const payload = {
+            properties: pageProperties,
+            children: contentBlocks
+        };
+        
+        console.log("直接生成给Notion API的最终Payload:", JSON.stringify(payload, null, 2));
+        return payload;
+    }
+
 
     // --- 5. EVENT HANDLERS ---
 
@@ -300,6 +369,11 @@ document.addEventListener("DOMContentLoaded", () => {
         
         elements.matchesContainer.addEventListener('change', handleGameInputChange);
         elements.matchesContainer.addEventListener('input', handleGameInputChange);
+
+        const sendToNotionButton = document.getElementById('send-to-notion-button');
+        if (sendToNotionButton) {
+            sendToNotionButton.addEventListener('click', handleSendToNotion);
+        }
     }
 
     function handleNextStep() {
@@ -390,6 +464,31 @@ document.addEventListener("DOMContentLoaded", () => {
         STATE.isMatchEnd = !STATE.isMatchEnd;
         elements.matchEndButton.textContent = STATE.isMatchEnd ? '取消结束' : '比赛结束';
         render();
+    }
+
+    async function handleSendToNotion() {
+        const data = collectDataForNotion();
+        
+        try {
+            // '/api/send-to-notion' 就是我们之后要在Vercel上创建的后端函数地址
+            const response = await fetch('/api/send-to-notion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                alert('成功发送到Notion！');
+            } else {
+                const errorResult = await response.json();
+                alert(`发送失败: ${errorResult.message || '未知错误'}`);
+            }
+        } catch (error) {
+            console.error('发送请求时出错:', error);
+            alert('发送请求时发生网络错误。');
+        }
     }
 
     // --- 6. DATA PERSISTENCE & OBS WINDOW ---
