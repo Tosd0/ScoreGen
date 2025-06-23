@@ -4,17 +4,15 @@
  * @author Tosd0, Refactored by Gemini
  */
 
-const clerkPublishableKey = "pk_test_Y2FyaW5nLXJlZGZpc2gtMzQuY2xlcmsuYWNjb3VudHMuZGV2JA"
+const CLERK_PUBLISHABLE_KEY = "pk_test_Y2FyaW5nLXJlZGZpc2gtMzQuY2xlcmsuYWNjb3VudHMuZGV2JA"
 const BackGroundImageUrl = "https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png";
 
-const SCHOOLS = [
+document.addEventListener("DOMContentLoaded", () => {
+    // 定义全局常量
+    const SCHOOLS = [
             "<联>醒", "北京市第三十五中学", "<联>上古神兽", 
             "北大附中朝阳未来学校", "<联>QwQ", "北京教师进修学校"
         ];
-
-document.addEventListener("DOMContentLoaded", () => {
-    // --- 1. APP-WIDE CONSTANTS & STATE ---
-    // 定义全局常量
     const ROLES = {
         hunter: '监管',
         survivor: '求生'
@@ -35,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     let obsWindow = null;
+    let isAppInitialized = false;
 
     // --- 2. DOM ELEMENT REFERENCES ---
     const elements = {
@@ -65,27 +64,44 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // Clerk initialization
-    const clerk = new Clerk(clerkPublishableKey);
-    clerk.load();
+    const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
+    clerk.load().then(() => {
+        console.log("Clerk 核心加载完成！");
 
+        const updateUI = () => {
+            if (clerk.user) {
+                elements.loginContainer.style.display = 'none';
+                elements.appContainer.style.display = 'block';
+                clerk.mountUserButton(elements.userButtonComponent);
+
+                if (!isAppInitialized) {
+                    initializeApp();
+                }
+            } else {
+                elements.loginContainer.style.display = 'block';
+                elements.appContainer.style.display = 'none';
+                clerk.mountSignIn(elements.clerkSigninComponent);
+            }
+        };
     // --- 3. 监听登录状态变化 ---
-    clerk.addListener(({ user }) => {
-        if (user) {
-            console.log("用户已登录:", user.id);
-            elements.loginContainer.style.display = 'none';
-            elements.appContainer.style.display = 'block';
-            
-            clerk.mountUserButton(elements.userButtonComponent);
-        } else {
-            console.log("用户未登录");
-            elements.loginContainer.style.display = 'block';
-            elements.appContainer.style.display = 'none';
+        clerk.addListener(({ user }) => {
+            console.log("Clerk 监听到状态变化，当前用户:", user ? user.id : '未登录');
+            updateUI();
+        });
 
-            clerk.mountSignIn(elements.clerkSigninComponent);
-        }
+        updateUI();
+
     });
 
-    bindEventListeners();
+    function initializeApp() {
+        console.log("应用初始化开始...");
+        const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
+        elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
+        elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
+        
+        bindEventListeners();
+        isAppInitialized = true;
+    }
 
     // --- 3. UI RENDERING FUNCTIONS ---
 
@@ -592,6 +608,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    bindEventListeners();
+
 
     // --- 7. INITIALIZATION ---
     /**
@@ -601,8 +619,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
         elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
         elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
-        
-        bindEventListeners();
     }
 
     init();
