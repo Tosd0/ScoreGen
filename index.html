@@ -9,15 +9,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- 引入 Clerk.js 的核心脚本 -->
-    <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
-            crossorigin="anonymous"
-            type="text/javascript">
+    <script>
+        const CLERK_PUBLISHABLE_KEY = "%NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY%";
+    </script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        type="text/javascript"
+        async
+        onload="window.Clerk.load()"
+        data-clerk-publishable-key="%NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY%">
     </script>
 </head>
 <body>
 
-    <!-- 登录容器，默认显示 -->
     <div id="login-container" class="card active-stage" style="text-align: center; max-width: 480px; margin: 80px auto;">
         <div class="card-body">
             <h2 class="card-title">欢迎使用 IVBL 计分板</h2>
@@ -29,7 +33,6 @@
     <div id="app-container" style="display: none;">
         <div class="main-container">
             <header class="app-header">
-
                 <div id="user-button" style="position: absolute; top: 20px; right: 20px;"></div>
                 <h1>IVBL 计分板</h1>
                 <p class="version">v3.5.0</p>
@@ -38,7 +41,6 @@
             <div id="input-stage" class="card active-stage">
                 <div class="card-body">
                     <h2 class="card-title">比赛配置</h2>
-                    
                     <div class="team-selectors">
                         <select id="main-team" class="team-select">
                             <option value="" disabled selected>选择主场队伍</option>
@@ -48,7 +50,6 @@
                             <option value="" disabled selected>选择客场队伍</option>
                         </select>
                     </div>
-                    
                     <div id="game-mode-select" class="mode-switcher">
                         <label class="mode-label">赛制选择:</label>
                         <div class="mode-options">
@@ -81,28 +82,22 @@
                     <p id="match-instructions" style="display:none; text-align: center; color: #aaa; font-size: 14px; margin-bottom: 20px;">
                         填写表格时，请直接复制上方标题队伍名称
                     </p>
-
                     <div id="restored-data" style="display:none;" class="restore-info">
                         <h3>上次填写的数据：</h3>
                         <pre id="restored-data-content"></pre>
                     </div>
-                    
                     <div id="matches" class="matches-container"></div>
-                    
                     <div class="action-buttons">
                         <button id="add-bo" class="btn btn-secondary btn-add" style="display:none;">添加场次</button>
                         <button id="add-tiebreaker" class="btn btn-secondary btn-add" style="display:none;">添加加赛</button>
                     </div>
-
                     <div id="match-controls" class="match-controls">
                         <button id="toggle-intermission" class="btn btn-control">进入场间</button>
                         <button id="toggle-match-end" class="btn btn-control">比赛结束</button>
                     </div>
-                    
                     <div id="results-wrapper" class="results-wrapper">
                         <div id="results"></div>
                     </div>
-
                 </div>
                 <div class="card-footer">
                     <button id="open-obs-window" class="btn btn-primary">

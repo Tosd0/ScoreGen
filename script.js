@@ -4,7 +4,6 @@
  * @author Tosd0, Refactored by Gemini
  */
 
-const CLERK_PUBLISHABLE_KEY = "pk_test_Y2FyaW5nLXJlZGZpc2gtMzQuY2xlcmsuYWNjb3VudHMuZGV2JA"
 const BackGroundImageUrl = "https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -64,8 +63,14 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // Clerk initialization
-    const clerk = new Clerk(CLERK_PUBLISHABLE_KEY);
-    clerk.load().then(() => {
+    const clerk = window.Clerk;
+    async function startClerk() {
+        if (!clerk) {
+            console.error("Clerk instance not found. Make sure the Clerk script is loaded correctly.");
+            return;
+        }
+
+        await clerk.load();
         console.log("Clerk 核心加载完成！");
 
         const updateUI = () => {
@@ -73,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 elements.loginContainer.style.display = 'none';
                 elements.appContainer.style.display = 'block';
                 clerk.mountUserButton(elements.userButtonComponent);
-
                 if (!isAppInitialized) {
                     initializeApp();
                 }
@@ -83,18 +87,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 clerk.mountSignIn(elements.clerkSigninComponent);
             }
         };
-    // --- 3. 监听登录状态变化 ---
+
         clerk.addListener(({ user }) => {
             console.log("Clerk 监听到状态变化，当前用户:", user ? user.id : '未登录');
             updateUI();
         });
 
         updateUI();
+    }
 
-    });
+    startClerk();
 
+
+    // --- 应用初始化函数 ---
     function initializeApp() {
-        console.log("应用初始化开始...");
+        console.log("应用首次初始化...");
         const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
         elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
         elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
@@ -409,21 +416,22 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- 5. EVENT HANDLERS ---
 
     function bindEventListeners() {
-        elements.nextButton.addEventListener('click', handleNextStep);
-        elements.restoreButton.addEventListener('click', handleRestoreState);
-        elements.addBoButton.addEventListener('click', handleAddBo);
-        elements.addTiebreakerButton.addEventListener('click', handleAddTiebreaker);
-        
-        elements.intermissionButton.addEventListener('click', handleToggleIntermission);
-        elements.matchEndButton.addEventListener('click', handleToggleMatchEnd);
-        elements.obsWindowButton.addEventListener('click', handleOpenOBSWindow);
-        
-        elements.matchesContainer.addEventListener('change', handleGameInputChange);
-        elements.matchesContainer.addEventListener('input', handleGameInputChange);
+        console.log("绑定所有事件监听器...");
+        Object.entries(elements).forEach(([key, el]) => {
+            if (!el) console.warn(`Element not found for: ${key}`);
+        });
 
-        const sendToNotionButton = document.getElementById('send-to-notion-button');
-        if (sendToNotionButton) {
-            sendToNotionButton.addEventListener('click', handleSendToNotion);
+        if(elements.nextButton) elements.nextButton.addEventListener('click', handleNextStep);
+        if(elements.restoreButton) elements.restoreButton.addEventListener('click', handleRestoreState);
+        if(elements.addBoButton) elements.addBoButton.addEventListener('click', handleAddBo);
+        if(elements.addTiebreakerButton) elements.addTiebreakerButton.addEventListener('click', handleAddTiebreaker);
+        if(elements.intermissionButton) elements.intermissionButton.addEventListener('click', handleToggleIntermission);
+        if(elements.matchEndButton) elements.matchEndButton.addEventListener('click', handleToggleMatchEnd);
+        if(elements.obsWindowButton) elements.obsWindowButton.addEventListener('click', handleOpenOBSWindow);
+        if(elements.sendToNotionButton) elements.sendToNotionButton.addEventListener('click', handleSendToNotion);
+        if(elements.matchesContainer) {
+            elements.matchesContainer.addEventListener('change', handleGameInputChange);
+            elements.matchesContainer.addEventListener('input', handleGameInputChange);
         }
     }
 
