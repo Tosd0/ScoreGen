@@ -574,11 +574,11 @@ document.addEventListener("DOMContentLoaded", () => {
             elements.outputStage.classList.add('active-stage');
             elements.matchTitle.textContent = `${STATE.mainTeam} vs ${STATE.subTeam}`;
             elements.matchInstructions.style.display = 'block';
-
-            elements.restoredDataContainer.style.display = 'block';
-            elements.restoredDataContent.textContent = JSON.stringify(STATE, null, 2);
-
+            
             render();
+            
+            alert('已成功恢复上次的数据。');
+
         } else {
             alert('没有找到任何保存的数据。');
         }
