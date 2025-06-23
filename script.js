@@ -1,14 +1,13 @@
 /**
  * IVBL 赛果填写辅助工具
- * @version 3.5.0
+ * @version 3.5.2
  * @author Tosd0, Refactored by Gemini
  */
 
 const BackGroundImageUrl = "https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png";
 
 const SCHOOLS = [
-    "<联>醒", "北京市第三十五中学", "<联>上古神兽",
-    "北大附中朝阳未来学校", "<联>QwQ", "北京教师进修学校"
+    "[TEST]A", "[TEST]B", "[TEST]C",
 ];
 const ROLES = {
     hunter: '监管',
