@@ -1,20 +1,16 @@
 /**
  * IVBL 赛果填写辅助工具
- * @version 3.0.0 Refactored
+ * @version 3.5.0
  * @author Tosd0, Refactored by Gemini
  */
 
 const BackGroundImageUrl = "https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png";
 
-const SCHOOLS = [
-            "<联>醒", "北京市第三十五中学", "<联>上古神兽", 
-            "北大附中朝阳未来学校", "<联>QwQ", "北京教师进修学校"
-        ];
-
 document.addEventListener("DOMContentLoaded", () => {
-    // --- 1. APP-WIDE CONSTANTS & STATE ---
-
-    // 定义全局常量
+    const SCHOOLS = [
+        "<联>醒", "北京市第三十五中学", "<联>上古神兽",
+        "北大附中朝阳未来学校", "<联>QwQ", "北京教师进修学校"
+    ];
     const ROLES = {
         hunter: '监管',
         survivor: '求生'
@@ -24,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
         bo5: { initialGames: 3, maxGames: 5 }
     };
 
-    // 使用一个对象统一管理应用的所有动态状态
     let STATE = {
         mainTeam: '',
         subTeam: '',
@@ -35,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     let obsWindow = null;
+    let isAppInitialized = false;
 
     // --- 2. DOM ELEMENT REFERENCES ---
     const elements = {
@@ -56,8 +52,60 @@ document.addEventListener("DOMContentLoaded", () => {
         restoreButton: document.getElementById('restore-button'),
         obsWindowButton: document.getElementById('open-obs-window'),
         intermissionButton: document.getElementById('toggle-intermission'),
-        matchEndButton: document.getElementById('toggle-match-end')
+        matchEndButton: document.getElementById('toggle-match-end'),
+        sendToNotionButton: document.getElementById('send-to-notion-button'),
+        // login
+        loginContainer: document.getElementById('login-container'),
+        appContainer: document.getElementById('app-container'),
+        clerkSigninComponent: document.getElementById('clerk-signin'),
+        userButtonComponent: document.getElementById('user-button'),
     };
+
+    // Clerk initialization
+    const clerk = window.Clerk;
+    async function startClerk() {
+        if (!clerk) {
+            console.error("Clerk instance not found. Make sure the Clerk script is loaded correctly.");
+            return;
+        }
+
+        await clerk.load();
+        console.log("Clerk 核心加载完成！");
+
+        const updateUI = () => {
+            if (clerk.user) {
+                elements.loginContainer.style.display = 'none';
+                elements.appContainer.style.display = 'block';
+                clerk.mountUserButton(elements.userButtonComponent);
+                if (!isAppInitialized) {
+                    initializeApp();
+                }
+            } else {
+                elements.loginContainer.style.display = 'block';
+                elements.appContainer.style.display = 'none';
+                clerk.mountSignIn(elements.clerkSigninComponent);
+            }
+        };
+
+        clerk.addListener(({ user }) => {
+            console.log("Clerk 监听到状态变化，当前用户:", user ? user.id : '未登录');
+            updateUI();
+        });
+
+        updateUI();
+    }
+
+    // --- 应用初始化函数 ---
+    function initializeApp() {
+        if (isAppInitialized) return;
+        console.log("应用首次初始化...");
+        const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
+        elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
+        elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
+
+        bindEventListeners();
+        isAppInitialized = true;
+    }
 
     // --- 3. UI RENDERING FUNCTIONS ---
 
@@ -109,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const resultOptions = role ? Object.entries(RESULTS[role === ROLES.hunter ? 'hunter' : 'survivor']).map(([value, text]) =>
                 `<option value="${value}" ${result === value ? 'selected' : ''}>${text}</option>`
             ).join('') : '';
-            
+
             const timeInputHTML = isTiebreaker ? `<input type="text" class="time-input" placeholder="比赛时间(秒)" data-half="${half}" value="${time || ''}">` : '';
 
             return `
@@ -126,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             `;
         };
-        
+
         gameDiv.innerHTML = `
             <h3>${gameLabel}</h3>
             ${createHalfUI(1)}
@@ -143,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
         elements.addBoButton.style.display = (currentBoCount < matchConfig.maxGames) ? 'block' : 'none';
         elements.addTiebreakerButton.style.display = (currentBoCount === matchConfig.maxGames && !hasTiebreaker) ? 'block' : 'none';
     }
-    
+
     function renderResultTable() {
         const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub, gameDetails } = calculateScores();
 
@@ -155,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 winningTeam = smallScoreMain > smallScoreSub ? 'main' : 'sub';
             }
         }
-        
+
         const mainHighlight = winningTeam === 'main' ? 'class="highlight"' : '';
         const subHighlight = winningTeam === 'sub' ? 'class="highlight"' : '';
 
@@ -175,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const mainTeamRow = gameDetails.map(g => `<td ${mainHighlight}>${g.main1}</td><td ${mainHighlight}>${g.main2}</td>`).join('');
         const subTeamRow = gameDetails.map(g => `<td ${subHighlight}>${g.sub1}</td><td ${subHighlight}>${g.sub2}</td>`).join('');
-        
+
         elements.resultsContainer.innerHTML = `
             <div style="padding: 0 25px; overflow-x:auto;">
                 ${headerHTML}
@@ -194,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- 4. LOGIC & CALCULATIONS ---
-    
+
     /**
      * 计算大分和小分
      * @returns {object}
@@ -217,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (totalMain > totalSub) bigScoreMain++;
                 else if (totalSub > totalMain) bigScoreSub++;
             }
-            
+
             gameDetails.push({
                 label: game.id.toUpperCase(),
                 main1: getHalfDisplay(game, 1, 'main'),
@@ -251,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!role || result === '' || result === null || result === undefined) {
             return { main: 0, sub: 0, valid: false };
         }
-        
+
         const points = POINTS[result];
 
         if (!points) {
@@ -260,7 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         return { ...points, valid: true };
     }
-    
+
     /**
      * 获取用于在表格中显示的半场结果字符串
      * @param {object} game
@@ -303,6 +351,13 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         const contentBlocks = [];
+        contentBlocks.push({
+            "object": "block",
+            "type": "heading_2",
+            "heading_2": {
+                "rich_text": [{ "type": "text", "text": { "content": "比赛结果" } }]
+            }
+        })
         STATE.games.forEach(game => {
             contentBlocks.push({
                 "object": "block",
@@ -313,7 +368,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             const half1Result = getHalfScores(game, 1);
-            if(half1Result.valid) {
+            if (half1Result.valid) {
                 const mainTeamRole = game.role1;
                 const text = mainTeamRole === '监管'
                     ? `上半场 ${half1Result.main}监(${game.time1 || ''}) : ${half1Result.sub}求`
@@ -327,14 +382,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 });
             }
-            
+
             const half2Result = getHalfScores(game, 2);
-            if(half2Result.valid) {
+            if (half2Result.valid) {
                 const mainTeamRole = game.role2;
                 const text = mainTeamRole === '监管'
                     ? `下半场 ${half2Result.main}监(${game.time2 || ''}) : ${half2Result.sub}求`
                     : `下半场 ${half2Result.main}求(${game.time2 || ''}) : ${half2Result.sub}监`;
-                
+
                 contentBlocks.push({
                     "object": "block",
                     "type": "paragraph",
@@ -350,7 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
             children: contentBlocks
         };
         
-        console.log("直接生成给Notion API的最终Payload:", JSON.stringify(payload, null, 2));
+        // console.log("直接生成给Notion API的最终Payload:", JSON.stringify(payload, null, 2));
         return payload;
     }
 
@@ -358,21 +413,22 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- 5. EVENT HANDLERS ---
 
     function bindEventListeners() {
-        elements.nextButton.addEventListener('click', handleNextStep);
-        elements.restoreButton.addEventListener('click', handleRestoreState);
-        elements.addBoButton.addEventListener('click', handleAddBo);
-        elements.addTiebreakerButton.addEventListener('click', handleAddTiebreaker);
-        
-        elements.intermissionButton.addEventListener('click', handleToggleIntermission);
-        elements.matchEndButton.addEventListener('click', handleToggleMatchEnd);
-        elements.obsWindowButton.addEventListener('click', handleOpenOBSWindow);
-        
-        elements.matchesContainer.addEventListener('change', handleGameInputChange);
-        elements.matchesContainer.addEventListener('input', handleGameInputChange);
+        console.log("绑定所有事件监听器...");
+        Object.entries(elements).forEach(([key, el]) => {
+            if (!el) console.warn(`Element not found for: ${key}`);
+        });
 
-        const sendToNotionButton = document.getElementById('send-to-notion-button');
-        if (sendToNotionButton) {
-            sendToNotionButton.addEventListener('click', handleSendToNotion);
+        if (elements.nextButton) elements.nextButton.addEventListener('click', handleNextStep);
+        if (elements.restoreButton) elements.restoreButton.addEventListener('click', handleRestoreState);
+        if (elements.addBoButton) elements.addBoButton.addEventListener('click', handleAddBo);
+        if (elements.addTiebreakerButton) elements.addTiebreakerButton.addEventListener('click', handleAddTiebreaker);
+        if (elements.intermissionButton) elements.intermissionButton.addEventListener('click', handleToggleIntermission);
+        if (elements.matchEndButton) elements.matchEndButton.addEventListener('click', handleToggleMatchEnd);
+        if (elements.obsWindowButton) elements.obsWindowButton.addEventListener('click', handleOpenOBSWindow);
+        if (elements.sendToNotionButton) elements.sendToNotionButton.addEventListener('click', handleSendToNotion);
+        if (elements.matchesContainer) {
+            elements.matchesContainer.addEventListener('change', handleGameInputChange);
+            elements.matchesContainer.addEventListener('input', handleGameInputChange);
         }
     }
 
@@ -380,7 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const mainTeam = elements.mainTeamSelect.value;
         const subTeam = elements.subTeamSelect.value;
         const matchMode = elements.matchModeSelect.querySelector('input:checked').value;
-        
+
         if (!mainTeam || !subTeam) {
             alert('请选择队伍');
             return;
@@ -389,21 +445,21 @@ document.addEventListener("DOMContentLoaded", () => {
         STATE.mainTeam = mainTeam;
         STATE.subTeam = subTeam;
         STATE.matchMode = matchMode;
-        
+
         STATE.games = [];
         const initialGameCount = MATCH_MODES[matchMode].initialGames;
         for (let i = 1; i <= initialGameCount; i++) {
             STATE.games.push({ id: `bo${i}` });
         }
-        
+
         elements.inputStage.classList.remove('active-stage');
         elements.outputStage.classList.add('active-stage');
         elements.matchTitle.textContent = `${mainTeam} vs ${subTeam}`;
         elements.matchInstructions.style.display = 'block';
-        
+
         render();
     }
-    
+
     function handleGameInputChange(e) {
         const target = e.target;
         const gameDiv = target.closest('.game-instance');
@@ -419,21 +475,21 @@ document.addEventListener("DOMContentLoaded", () => {
             game[`role${half}`] = role;
             game[`result${half}`] = '';
             if (game[`time${half}`] !== undefined) game[`time${half}`] = '';
-            
+
             const otherHalf = half === '1' ? '2' : '1';
             const otherRoleSelect = gameDiv.querySelector(`.role-select[data-half="${otherHalf}"]`);
             if (role) {
                 const oppositeRole = role === ROLES.hunter ? ROLES.survivor : ROLES.hunter;
                 game[`role${otherHalf}`] = oppositeRole;
                 game[`result${otherHalf}`] = '';
-                if(otherRoleSelect) otherRoleSelect.value = oppositeRole;
+                if (otherRoleSelect) otherRoleSelect.value = oppositeRole;
             } else {
                 game[`role${otherHalf}`] = "";
                 game[`result${otherHalf}`] = '';
-                if(otherRoleSelect) otherRoleSelect.value = "";
+                if (otherRoleSelect) otherRoleSelect.value = "";
             }
             renderMatchUI();
-            
+
         } else if (target.classList.contains('score-select')) {
             game[`result${half}`] = target.value;
         } else if (target.classList.contains('time-input')) {
@@ -448,7 +504,7 @@ document.addEventListener("DOMContentLoaded", () => {
         STATE.games.push({ id: `bo${nextBoNum}` });
         render();
     }
-    
+
     function handleAddTiebreaker() {
         STATE.games.push({ id: 'tiebreaker' });
         render();
@@ -467,14 +523,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function handleSendToNotion() {
+        if (!clerk.user) {
+            alert('请先登录。');
+            return;
+        }
+
         const data = collectDataForNotion();
-        
+
         try {
-            // '/api/send-to-notion' 就是我们之后要在Vercel上创建的后端函数地址
+            const token = await clerk.session.getToken();
+
             const response = await fetch('/api/send-to-notion', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify(data),
             });
@@ -501,26 +564,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const savedData = localStorage.getItem('matchData');
         if (savedData) {
             STATE = JSON.parse(savedData);
-            
+
             elements.mainTeamSelect.value = STATE.mainTeam;
             elements.subTeamSelect.value = STATE.subTeam;
             const matchModeRadio = elements.matchModeSelect.querySelector(`input[value="${STATE.matchMode}"]`);
-            if(matchModeRadio) matchModeRadio.checked = true;
+            if (matchModeRadio) matchModeRadio.checked = true;
 
             elements.inputStage.classList.remove('active-stage');
             elements.outputStage.classList.add('active-stage');
             elements.matchTitle.textContent = `${STATE.mainTeam} vs ${STATE.subTeam}`;
             elements.matchInstructions.style.display = 'block';
-            
+
             elements.restoredDataContainer.style.display = 'block';
             elements.restoredDataContent.textContent = JSON.stringify(STATE, null, 2);
-            
+
             render();
         } else {
             alert('没有找到任何保存的数据。');
         }
     }
-    
+
     function handleOpenOBSWindow() {
         if (!obsWindow || obsWindow.closed) {
             obsWindow = window.open("", "obsWindow", "width=800,height=360");
@@ -550,18 +613,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-
     // --- 7. INITIALIZATION ---
-    /**
-     * 程序入口
-     */
-    function init() {
-        const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
-        elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
-        elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
-        
-        bindEventListeners();
-    }
-
-    init();
+    startClerk();
 });
