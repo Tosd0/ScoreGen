@@ -57,6 +57,7 @@ const elements = {
     appContainer: document.getElementById('app-container'),
     clerkSigninComponent: document.getElementById('clerk-signin'),
     userButtonComponent: document.getElementById('user-button'),
+    greetingMessage: document.getElementById('greeting-message'),
 };
 
 // Clerk initialization
@@ -76,6 +77,7 @@ async function startClerk() {
             elements.loginContainer.style.display = 'none';
             elements.appContainer.style.display = 'block';
             clerk.mountUserButton(elements.userButtonComponent);
+            updateGreeting(clerk.user);
             if (!isAppInitialized) {
                 initializeApp();
             }
@@ -83,6 +85,7 @@ async function startClerk() {
             elements.loginContainer.style.display = 'block';
             elements.appContainer.style.display = 'none';
             clerk.mountSignIn(elements.clerkSigninComponent);
+            updateGreeting(null);
         }
     };
 
@@ -610,6 +613,32 @@ function updateOBSWindow() {
             resultsDiv.innerHTML = elements.resultsContainer.innerHTML;
         }
     }
+}
+
+function updateGreeting(user) {
+    if (!elements.greetingMessage) return;
+
+    if (!user) {
+        elements.greetingMessage.textContent = '';
+        return;
+    }
+
+    const hour = new Date().getHours();
+    let greetingText;
+    if (hour >= 0 && hour < 6) {
+        greetingText = '夜深了';
+    } else if (hour >= 6 && hour < 11) {
+        greetingText = '早上好';
+    } else if (hour >= 11 && hour < 14) {
+        greetingText = '中午好';
+    } else if (hour >= 14 && hour < 19) {
+        greetingText = '下午好';
+    } else { // 19-24
+        greetingText = '晚上好';
+    }
+
+    const username = user.username || user.id;
+    elements.greetingMessage.textContent = `${greetingText}，${username}`;
 }
 
 window.addEventListener('load', startClerk);
