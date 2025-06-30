@@ -116,7 +116,7 @@ function initializeApp() {
     elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
 
     // 根据设备类型决定是否显示OBS按钮
-    if (isDesktopDevice()) {
+    if (!isDesktopDevice()) {
         elements.obsWindowButton.style.display = 'none';
     }
 
