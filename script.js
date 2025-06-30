@@ -1,6 +1,6 @@
 /**
  * IVBL 赛果填写辅助工具
- * @version 3.5.5
+ * @version 3.5.6
  * @author Tosd0
  */
 
@@ -97,6 +97,16 @@ async function startClerk() {
     updateUI();
 }
 
+/**
+ * 检测当前设备是否为电脑
+ * @returns {boolean} 如果是桌面设备，则返回true，否则返回false
+ */
+function isDesktopDevice() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /iphone|ipad|ipod|android|blackberry|windows phone|opera mini|silk|mobile safari|iemobile/.test(userAgent);
+    return !isMobile;
+}
+
 // --- 应用初始化函数 ---
 function initializeApp() {
     if (isAppInitialized) return;
@@ -104,6 +114,11 @@ function initializeApp() {
     const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
     elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
     elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
+
+    // 根据设备类型决定是否显示OBS按钮
+    if (isDesktopDevice()) {
+        elements.obsWindowButton.style.display = 'none';
+    }
 
     bindEventListeners();
     isAppInitialized = true;
