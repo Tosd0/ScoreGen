@@ -1,6 +1,6 @@
 {
   "name": "scoregen",
-  "version": "1.0.0",
+  "version": "3.5.5",
   "description": "请打开[网页内说明](https://gen.cdsv.cc/docs/document.html)查看用法。",
   "main": "script.js",
   "directories": {

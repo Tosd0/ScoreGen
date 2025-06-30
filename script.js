@@ -1,7 +1,7 @@
 /**
  * IVBL 赛果填写辅助工具
- * @version 3.5.2
- * @author Tosd0, Refactored by Gemini
+ * @version 3.5.5
+ * @author Tosd0
  */
 
 const BackGroundImageUrl = "https://patchwiki.biligame.com/images/dwrg/c/c2/e11ewgd95uf04495nybhhkqev5sjo0j.png";
@@ -165,11 +165,11 @@ function createGameUI(game, isTiebreaker) {
         return `
             <div>
                 ${STATE.mainTeam}（<select class="role-select" data-half="${half}">
-                    <option value="">未选择</option>
+                    <option value="">---</option>
                     ${roleOptions}
                 </select>）
                 游戏结果：<select class="score-select" data-half="${half}">
-                    <option value="">未选择</option>
+                    <option value="">---</option>
                     ${resultOptions}
                 </select>
                 ${timeInputHTML}
@@ -597,10 +597,49 @@ function handleOpenOBSWindow() {
                 #background-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1; }
                 #obs-results { position: relative; z-index: 2; height: 100vh; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 10px rgba(255,255,255,0.8); }
                 .highlight { color: #ffeb3b !important; text-shadow: 0 0 10px #ffeb3b, 0 0 20px #ffeb3b !important; }
+                
+                /* OBS窗口的水印样式 */
+                .watermark-container {
+                  position: fixed;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  pointer-events: none;
+                  z-index: 1000;
+                  overflow: hidden;
+                }
+                
+                .watermark {
+                  position: absolute;
+                  font-family: var(--font-main);
+                  color: rgba(255, 255, 255, 0.15);
+                  font-size: 12px;
+                  transform: rotate(45deg);
+                  white-space: nowrap;
+                  user-select: none;
+                  text-align: center;
+                  line-height: 1.5;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 2px;
+                  width: 140px;
+                }
             </style></head><body><div id="background-overlay"></div><div id="obs-results"></div></body></html>
         `);
         obsWindow.document.close();
-        setTimeout(updateOBSWindow, 100);
+        setTimeout(() => {
+            updateOBSWindow();
+            if (clerk && clerk.user) {
+                createOBSWatermark(clerk.user);
+                
+                obsWindow.addEventListener('resize', () => {
+                    if (clerk && clerk.user) {
+                        createOBSWatermark(clerk.user);
+                    }
+                });
+            }
+        }, 100);
     } else {
         obsWindow.focus();
     }
@@ -613,6 +652,59 @@ function updateOBSWindow() {
             resultsDiv.innerHTML = elements.resultsContainer.innerHTML;
         }
     }
+}
+
+/**
+ * 为OBS窗口创建水印
+ * @param {Object} user - 用户信息对象
+ */
+function createOBSWatermark(user) {
+    if (!obsWindow || obsWindow.closed || !user) return;
+    
+    const oldWatermark = obsWindow.document.querySelector('.watermark-container');
+    if (oldWatermark) {
+        obsWindow.document.body.removeChild(oldWatermark);
+    }
+    
+    const userId = user.id;
+    const username = user.username || userId;
+    
+    const container = obsWindow.document.createElement('div');
+    container.className = 'watermark-container';
+    
+    const screenWidth = obsWindow.innerWidth;
+    const screenHeight = obsWindow.innerHeight;
+    const spacingY = 140;
+    const spacingX = 130; 
+    
+    for (let y = -screenHeight; y < screenHeight * 2; y += spacingY) {
+        for (let x = -screenWidth; x < screenWidth * 2; x += spacingX) {
+            const watermark = obsWindow.document.createElement('div');
+            watermark.className = 'watermark';
+            
+            const usernameSpan = obsWindow.document.createElement('div');
+            usernameSpan.textContent = username;
+            usernameSpan.style.textAlign = 'center';
+            
+            const userIdSpan = obsWindow.document.createElement('div');
+            userIdSpan.textContent = userId;
+            userIdSpan.style.textAlign = 'center';
+            userIdSpan.style.fontSize = '10px';
+            
+            watermark.appendChild(usernameSpan);
+            watermark.appendChild(userIdSpan);
+            
+            // 随机偏移
+            const randomOffsetY = Math.floor(Math.random() * 80) - 40;
+            const randomOffsetX = Math.floor(Math.random() * 40) - 20;
+            
+            watermark.style.left = `${x + randomOffsetX}px`;
+            watermark.style.top = `${y + randomOffsetY}px`;
+            container.appendChild(watermark);
+        }
+    }
+    
+    obsWindow.document.body.appendChild(container);
 }
 
 function updateGreeting(user) {
@@ -639,6 +731,65 @@ function updateGreeting(user) {
 
     const username = user.username || user.id;
     elements.greetingMessage.textContent = `${greetingText}，${username}`;
+    
+    createWatermark(user);
+}
+
+/**
+ * 创建页面水印
+ * @param {Object} user - 用户信息对象
+ */
+function createWatermark(user) {
+    if (!user) return;
+    
+    const oldWatermark = document.querySelector('.watermark-container');
+    if (oldWatermark) {
+        document.body.removeChild(oldWatermark);
+    }
+    
+    const userId = user.id;
+    const username = user.username || userId;
+    
+    const container = document.createElement('div');
+    container.className = 'watermark-container';
+    
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const spacingY = 140;
+    const spacingX = 130;
+    
+    for (let y = -screenHeight; y < screenHeight * 2; y += spacingY) {
+        for (let x = -screenWidth; x < screenWidth * 2; x += spacingX) {
+            const watermark = document.createElement('div');
+            watermark.className = 'watermark';
+            
+            const usernameSpan = document.createElement('div');
+            usernameSpan.textContent = username;
+            usernameSpan.style.textAlign = 'center';
+            
+            const userIdSpan = document.createElement('div');
+            userIdSpan.textContent = userId;
+            userIdSpan.style.textAlign = 'center';
+            userIdSpan.style.fontSize = '10px';
+            
+            watermark.appendChild(usernameSpan);
+            watermark.appendChild(userIdSpan);
+            
+            // 随机偏移
+            const randomOffsetY = Math.floor(Math.random() * 80) - 40;
+            const randomOffsetX = Math.floor(Math.random() * 40) - 20;
+            
+            watermark.style.left = `${x + randomOffsetX}px`;
+            watermark.style.top = `${y + randomOffsetY}px`;
+            container.appendChild(watermark);
+        }
+    }
+    
+    document.body.appendChild(container);
+    
+    window.addEventListener('resize', () => {
+        createWatermark(user);
+    });
 }
 
 window.addEventListener('load', startClerk);
