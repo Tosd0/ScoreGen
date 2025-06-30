@@ -446,6 +446,7 @@ function bindEventListeners() {
     if (elements.matchesContainer) {
         elements.matchesContainer.addEventListener('change', handleGameInputChange);
         elements.matchesContainer.addEventListener('input', handleGameInputChange);
+        elements.matchesContainer.addEventListener('focusout', handleInputBlur);
     }
 }
 
@@ -509,11 +510,12 @@ function handleGameInputChange(e) {
 
     } else if (target.classList.contains('score-select')) {
         game[`result${half}`] = target.value;
+        render();
     } else if (target.classList.contains('time-input')) {
         game[`time${half}`] = target.value;
+        saveStateToLocalStorage();
+        updateOBSWindow();
     }
-
-    render();
 }
 
 function handleAddBo() {
@@ -805,6 +807,13 @@ function createWatermark(user) {
     window.addEventListener('resize', () => {
         createWatermark(user);
     });
+}
+
+function handleInputBlur(e) {
+    const target = e.target;
+    if (target.classList.contains('time-input')) {
+        render();
+    }
 }
 
 window.addEventListener('load', startClerk);
