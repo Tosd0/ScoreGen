@@ -65,6 +65,8 @@ const elements = {
     verifyDatabaseButton: document.getElementById('verify-database-button'),
     databaseError: document.getElementById('database-error'),
     databaseTitle: document.getElementById('database-title'),
+    changeDatabaseContainer: document.getElementById('change-database-container'),
+    changeDatabaseLink: document.getElementById('change-database-link'),
 };
 
 // Clerk initialization
@@ -173,6 +175,7 @@ async function verifyDatabaseId(databaseId) {
         
         if (elements.databaseTitle) {
             elements.databaseTitle.textContent = `您正在填写 ${STATE.databaseTitle} 的赛果数据`;
+            elements.changeDatabaseContainer.style.display = 'block';
         }
         
         localStorage.setItem('notionDatabaseId', databaseId);
@@ -538,6 +541,23 @@ function bindEventListeners() {
     if (elements.verifyDatabaseButton) {
         elements.verifyDatabaseButton.addEventListener('click', handleVerifyDatabase);
     }
+    if (elements.changeDatabaseLink) {
+        elements.changeDatabaseLink.addEventListener('click', handleChangeDatabase);
+    }
+}
+
+function handleChangeDatabase(e) {
+    e.preventDefault();
+
+    localStorage.removeItem('notionDatabaseId');
+    STATE.databaseId = '';
+    STATE.databaseTitle = '';
+
+    elements.databaseIdInput.value = '';
+    elements.databaseTitle.textContent = '';
+    elements.changeDatabaseContainer.style.display = 'none';
+    
+    showDatabaseIdContainer();
 }
 
 function handleNextStep() {
