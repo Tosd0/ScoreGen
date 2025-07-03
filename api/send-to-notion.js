@@ -2,7 +2,6 @@ import { Client } from "@notionhq/client";
 import { Clerk } from '@clerk/clerk-sdk-node';
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const DATABASE_ID = process.env.NOTION_DATABASE_ID;
 const clerk = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export default async function handler(req, res) {
@@ -13,6 +12,11 @@ export default async function handler(req, res) {
   const authorizationHeader = req.headers.authorization;
   if (!authorizationHeader) {
     return res.status(401).json({ message: "未授权的访问：缺少凭证" });
+  }
+
+  const databaseId = req.headers['x-database-id'];
+  if (!databaseId) {
+    return res.status(400).json({ message: "缺少数据库ID" });
   }
 
   try {
@@ -37,7 +41,7 @@ export default async function handler(req, res) {
     };
 
     await notion.pages.create({
-      parent: { database_id: DATABASE_ID },
+      parent: { database_id: databaseId },
       properties: propertiesWithUser,
       children: children,
     });

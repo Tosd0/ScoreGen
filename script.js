@@ -24,7 +24,9 @@ let STATE = {
     matchMode: 'bo5',
     games: [], // { id: 'bo1', role1: '', result1: '', role2: '', result2: '', time1: '', time2: '' }
     isIntermission: false,
-    isMatchEnd: false
+    isMatchEnd: false,
+    databaseId: '',
+    databaseTitle: ''
 };
 
 let obsWindow = null;
@@ -58,6 +60,11 @@ const elements = {
     clerkSigninComponent: document.getElementById('clerk-signin'),
     userButtonComponent: document.getElementById('user-button'),
     greetingMessage: document.getElementById('greeting-message'),
+    databaseIdContainer: document.getElementById('database-id-container'),
+    databaseIdInput: document.getElementById('database-id-input'),
+    verifyDatabaseButton: document.getElementById('verify-database-button'),
+    databaseError: document.getElementById('database-error'),
+    databaseTitle: document.getElementById('database-title'),
 };
 
 // Clerk initialization
@@ -75,7 +82,25 @@ async function startClerk() {
     const updateUI = () => {
         if (clerk.user) {
             elements.loginContainer.style.display = 'none';
-            elements.appContainer.style.display = 'block';
+            
+            const savedDatabaseId = localStorage.getItem('notionDatabaseId');
+            if (savedDatabaseId) {
+                STATE.databaseId = savedDatabaseId;
+                verifyDatabaseId(savedDatabaseId)
+                    .then(isValid => {
+                        if (isValid) {
+                            showAppContainer();
+                        } else {
+                            showDatabaseIdContainer();
+                        }
+                    })
+                    .catch(() => {
+                        showDatabaseIdContainer();
+                    });
+            } else {
+                showDatabaseIdContainer();
+            }
+            
             clerk.mountUserButton(elements.userButtonComponent);
             updateGreeting(clerk.user);
             if (!isAppInitialized) {
@@ -83,6 +108,7 @@ async function startClerk() {
             }
         } else {
             elements.loginContainer.style.display = 'block';
+            elements.databaseIdContainer.style.display = 'none';
             elements.appContainer.style.display = 'none';
             clerk.mountSignIn(elements.clerkSigninComponent);
             updateGreeting(null);
@@ -95,6 +121,62 @@ async function startClerk() {
     });
 
     updateUI();
+}
+
+/**
+ * 显示数据库ID输入界面
+ */
+function showDatabaseIdContainer() {
+    elements.databaseIdContainer.style.display = 'block';
+    elements.appContainer.style.display = 'none';
+}
+
+/**
+ * 显示主应用界面
+ */
+function showAppContainer() {
+    elements.databaseIdContainer.style.display = 'none';
+    elements.appContainer.style.display = 'block';
+}
+
+/**
+ * 验证数据库ID并获取数据库标题
+ * @param {string} databaseId - Notion数据库ID
+ * @returns {Promise<boolean>} - 验证是否成功
+ */
+async function verifyDatabaseId(databaseId) {
+    try {
+        if (!clerk.user) {
+            return false;
+        }
+
+        const token = await clerk.session.getToken();
+        
+        // 查询数据库以获取标题
+        const response = await fetch(`/api/verify-database?databaseId=${databaseId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('无法验证数据库ID');
+        }
+
+        const data = await response.json();
+        STATE.databaseTitle = data.title || '未知数据库';
+        
+        if (elements.databaseTitle) {
+            elements.databaseTitle.textContent = `您正在填写 ${STATE.databaseTitle} 的赛果数据`;
+        }
+        
+        localStorage.setItem('notionDatabaseId', databaseId);
+        return true;
+    } catch (error) {
+        console.error('验证数据库ID时出错:', error);
+        return false;
+    }
 }
 
 /**
@@ -448,6 +530,10 @@ function bindEventListeners() {
         elements.matchesContainer.addEventListener('input', handleGameInputChange);
         elements.matchesContainer.addEventListener('focusout', handleInputBlur);
     }
+    
+    if (elements.verifyDatabaseButton) {
+        elements.verifyDatabaseButton.addEventListener('click', handleVerifyDatabase);
+    }
 }
 
 function handleNextStep() {
@@ -546,6 +632,11 @@ async function handleSendToNotion() {
         alert('请先登录。');
         return;
     }
+    
+    if (!STATE.databaseId) {
+        alert('请先输入有效的数据库ID。');
+        return;
+    }
 
     const data = collectDataForNotion();
 
@@ -557,6 +648,7 @@ async function handleSendToNotion() {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
+                'X-Database-ID': STATE.databaseId
             },
             body: JSON.stringify(data),
         });
@@ -814,6 +906,51 @@ function handleInputBlur(e) {
     if (target.classList.contains('time-input')) {
         render();
     }
+}
+
+/**
+ * 处理数据库ID验证按钮点击事件
+ */
+async function handleVerifyDatabase() {
+    const databaseId = elements.databaseIdInput.value.trim();
+    
+    if (!databaseId) {
+        showDatabaseError('请输入数据库ID');
+        return;
+    }
+    
+    elements.verifyDatabaseButton.disabled = true;
+    elements.verifyDatabaseButton.textContent = '验证中...';
+    
+    try {
+        const isValid = await verifyDatabaseId(databaseId);
+        
+        if (isValid) {
+            STATE.databaseId = databaseId;
+            showAppContainer();
+        } else {
+            showDatabaseError('无法验证数据库ID，请确保ID正确且您有访问权限');
+        }
+    } catch (error) {
+        showDatabaseError('验证过程中出错，请稍后重试');
+        console.error(error);
+    } finally {
+        elements.verifyDatabaseButton.disabled = false;
+        elements.verifyDatabaseButton.innerHTML = '验证并继续 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>';
+    }
+}
+
+/**
+ * 显示数据库ID错误信息
+ * @param {string} message - 错误信息
+ */
+function showDatabaseError(message) {
+    elements.databaseError.textContent = message;
+    elements.databaseError.style.display = 'block';
+    
+    setTimeout(() => {
+        elements.databaseError.style.display = 'none';
+    }, 3000);
 }
 
 window.addEventListener('load', startClerk);
