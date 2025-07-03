@@ -81,7 +81,7 @@ async function startClerk() {
 
     const updateUI = () => {
         if (clerk.user) {
-            elements.loginContainer.style.display = 'none';
+            elements.loginContainer.classList.remove('active-stage');
             
             const savedDatabaseId = localStorage.getItem('notionDatabaseId');
             if (savedDatabaseId) {
@@ -107,6 +107,8 @@ async function startClerk() {
                 initializeApp();
             }
         } else {
+            elements.loginContainer.classList.add('active-stage');
+            elements.databaseIdContainer.classList.remove('active-stage');
             elements.loginContainer.style.display = 'block';
             elements.databaseIdContainer.style.display = 'none';
             elements.appContainer.style.display = 'none';
@@ -127,7 +129,8 @@ async function startClerk() {
  * 显示数据库ID输入界面
  */
 function showDatabaseIdContainer() {
-    elements.databaseIdContainer.style.display = 'block';
+    elements.databaseIdContainer.classList.add('active-stage');
+    elements.loginContainer.classList.remove('active-stage');
     elements.appContainer.style.display = 'none';
 }
 
@@ -135,7 +138,8 @@ function showDatabaseIdContainer() {
  * 显示主应用界面
  */
 function showAppContainer() {
-    elements.databaseIdContainer.style.display = 'none';
+    elements.databaseIdContainer.classList.remove('active-stage');
+    elements.loginContainer.classList.remove('active-stage');
     elements.appContainer.style.display = 'block';
 }
 
