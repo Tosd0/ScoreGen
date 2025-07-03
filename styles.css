@@ -75,6 +75,7 @@ body {
 #greeting-message {
   color: var(--color-text-main);
   text-shadow: 0 0 12px var(--color-primary-glow), 0 0 20px var(--color-primary-glow);
+  margin-top: -25px;
 }
 
 .card {

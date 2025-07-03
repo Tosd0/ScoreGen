@@ -60,6 +60,7 @@ const elements = {
     clerkSigninComponent: document.getElementById('clerk-signin'),
     userButtonComponent: document.getElementById('user-button'),
     greetingMessage: document.getElementById('greeting-message'),
+    dbGreetingMessage: document.getElementById('db-greeting-message'),
     databaseIdContainer: document.getElementById('database-id-container'),
     databaseIdInput: document.getElementById('database-id-input'),
     verifyDatabaseButton: document.getElementById('verify-database-button'),
@@ -841,10 +842,11 @@ function createOBSWatermark(user) {
 }
 
 function updateGreeting(user) {
-    if (!elements.greetingMessage) return;
+    if (!elements.greetingMessage || !elements.dbGreetingMessage) return;
 
     if (!user) {
         elements.greetingMessage.textContent = '';
+        elements.dbGreetingMessage.textContent = '';
         return;
     }
 
@@ -863,7 +865,10 @@ function updateGreeting(user) {
     }
 
     const username = user.username || user.id;
-    elements.greetingMessage.textContent = `${greetingText}，${username}`;
+    const fullGreeting = `${greetingText}，${username}`;
+    
+    elements.greetingMessage.textContent = fullGreeting;
+    elements.dbGreetingMessage.textContent = fullGreeting;
     
     createWatermark(user);
 }
@@ -953,7 +958,7 @@ async function handleVerifyDatabase() {
             STATE.databaseId = databaseId;
             showAppContainer();
         } else {
-            showDatabaseError('无法验证数据库ID，请确保ID正确且您有访问权限');
+            showDatabaseError('数据库ID错误，请二次核对');
         }
     } catch (error) {
         showDatabaseError('验证过程中出错，请稍后重试');
