@@ -1,6 +1,6 @@
 /**
  * IVBL 赛果填写辅助工具
- * @version 3.5.7
+ * @version 3.7.0
  * @author Tosd0
  */
 
