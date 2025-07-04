@@ -34,13 +34,13 @@ let isAppInitialized = false;
 
 // --- 2. DOM ELEMENT REFERENCES ---
 const elements = {
+    appContainer: document.getElementById('app-container'),
     mainTeamSelect: document.getElementById('main-team'),
     subTeamSelect: document.getElementById('sub-team'),
     matchModeSelect: document.getElementById('game-mode-select'),
     inputStage: document.getElementById('input-stage'),
     outputStage: document.getElementById('output-stage'),
     matchTitle: document.getElementById('match-title'),
-    matchInstructions: document.getElementById('match-instructions'),
     matchesContainer: document.getElementById('matches'),
     resultsContainer: document.getElementById('results'),
     addBoButton: document.getElementById('add-bo'),
@@ -56,7 +56,6 @@ const elements = {
     sendToNotionButton: document.getElementById('send-to-notion-button'),
     // login
     loginContainer: document.getElementById('login-container'),
-    appContainer: document.getElementById('app-container'),
     clerkSigninComponent: document.getElementById('clerk-signin'),
     userButtonComponent: document.getElementById('user-button'),
     greetingMessage: document.getElementById('greeting-message'),
@@ -72,6 +71,18 @@ const elements = {
     confirmationSummary: document.getElementById('confirmation-summary'),
     cancelSendButton: document.getElementById('cancel-send-button'),
     confirmSendButton: document.getElementById('confirm-send-button'),
+    // choice
+    choiceStage: document.getElementById('choice-stage'),
+    choiceDbTitle: document.getElementById('choice-db-title'),
+    goToFillButton: document.getElementById('go-to-fill-button'),
+    backToChoiceFromFillButton: document.getElementById('back-to-choice-from-fill-button'),
+    // query
+    goToQueryButton: document.getElementById('go-to-query-button'),
+    queryContainer: document.getElementById('query-container'),
+    queryStage: document.getElementById('query-stage'),
+    queryTeamSelect: document.getElementById('query-team-select'),
+    queryResultContainer: document.getElementById('query-result-container'),
+    backToChoiceButton: document.getElementById('back-to-choice-button'),
 };
 
 // Clerk initialization
@@ -87,25 +98,30 @@ async function startClerk() {
     console.log("Clerk 核心加载完成！");
 
     const updateUI = () => {
-        if (clerk.user) {
-            elements.loginContainer.classList.remove('active-stage');
-            
+        if (clerk.user) {            
             const savedDatabaseId = localStorage.getItem('notionDatabaseId');
             if (savedDatabaseId) {
                 STATE.databaseId = savedDatabaseId;
                 verifyDatabaseId(savedDatabaseId)
                     .then(isValid => {
                         if (isValid) {
-                            showAppContainer();
+                            const onLoginPage = elements.loginContainer.style.display !== 'none';
+                            const onDbPage = elements.databaseIdContainer.style.display !== 'none';
+
+                            if (onLoginPage || onDbPage) {
+                                showStage('choice-stage');
+                            }
+                            
+                            elements.choiceDbTitle.textContent = `当前数据库: ${STATE.databaseTitle}`;
                         } else {
-                            showDatabaseIdContainer();
+                            showStage('database-id-container');
                         }
                     })
                     .catch(() => {
                         showDatabaseIdContainer();
                     });
             } else {
-                showDatabaseIdContainer();
+                showStage('database-id-container');
             }
             
             clerk.mountUserButton(elements.userButtonComponent);
@@ -114,12 +130,7 @@ async function startClerk() {
                 initializeApp();
             }
         } else {
-            elements.loginContainer.classList.add('active-stage');
-            elements.databaseIdContainer.classList.remove('active-stage');
-            elements.confirmationStage.classList.remove('active-stage');
-            elements.loginContainer.style.display = 'block';
-            elements.databaseIdContainer.style.display = 'none';
-            elements.appContainer.style.display = 'none';
+            showStage('login-container');
             clerk.mountSignIn(elements.clerkSigninComponent);
             updateGreeting(null);
         }
@@ -131,6 +142,40 @@ async function startClerk() {
     });
 
     updateUI();
+}
+
+/**
+ * 页面切换的辅助函数
+ * @param {string} stageId 要显示的页面的ID
+ */
+function showStage(stageId) {
+    const stages = ['login-container', 'database-id-container', 'choice-stage', 'app-container'];
+    stages.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (id === stageId) {
+                el.style.display = 'block';
+                if(el.classList.contains('card')) {
+                    el.classList.add('active-stage');
+                }
+            } else {
+                el.style.display = 'none';
+                if(el.classList.contains('card')) {
+                    el.classList.remove('active-stage');
+                }
+            }
+        }
+    });
+
+    if (stageId === 'app-container') {
+        elements.inputStage.classList.add('active-stage');
+        elements.outputStage.classList.remove('active-stage');
+    } else if (stageId === 'query-stage') {
+        elements.appContainer.style.display = 'block';
+        elements.inputStage.classList.remove('active-stage');
+        elements.outputStage.classList.remove('active-stage');
+        elements.queryStage.classList.add('active-stage');
+    }
 }
 
 /**
@@ -554,6 +599,14 @@ function bindEventListeners() {
 
     if (elements.cancelSendButton) elements.cancelSendButton.addEventListener('click', handleCancelSend);
     if (elements.confirmSendButton) elements.confirmSendButton.addEventListener('click', handleConfirmSend);
+
+    if (elements.goToFillButton) elements.goToFillButton.addEventListener('click', handleGoToFill);
+    if (elements.goToQueryButton) elements.goToQueryButton.addEventListener('click', handleGoToQuery);
+    if (elements.backToChoiceFromFillButton) elements.backToChoiceFromFillButton.addEventListener('click', handleBackToChoice);
+    if (elements.queryTeamSelect) elements.queryTeamSelect.addEventListener('change', handleQueryTeamSelect);
+    if (elements.backToChoiceButton) elements.backToChoiceButton.addEventListener('click', handleBackToChoice);
+
+
 }
 
 function handleChangeDatabase(e) {
@@ -593,7 +646,6 @@ function handleNextStep() {
     elements.inputStage.classList.remove('active-stage');
     elements.outputStage.classList.add('active-stage');
     elements.matchTitle.textContent = `${mainTeam} vs ${subTeam}`;
-    elements.matchInstructions.style.display = 'block';
 
     render();
 }
@@ -753,7 +805,6 @@ function handleRestoreState() {
         elements.inputStage.classList.remove('active-stage');
         elements.outputStage.classList.add('active-stage');
         elements.matchTitle.textContent = `${STATE.mainTeam} vs ${STATE.subTeam}`;
-        elements.matchInstructions.style.display = 'block';
         
         render();
         
@@ -1000,7 +1051,8 @@ async function handleVerifyDatabase() {
         
         if (isValid) {
             STATE.databaseId = databaseId;
-            showAppContainer();
+            showStage('choice-stage');
+            elements.choiceDbTitle.textContent = `当前数据库: ${STATE.databaseTitle}`;
         } else {
             showDatabaseError('数据库ID错误，请二次核对');
         }
@@ -1012,6 +1064,37 @@ async function handleVerifyDatabase() {
         elements.verifyDatabaseButton.innerHTML = '验证并继续 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>';
     }
 }
+
+function handleGoToFill() {
+    showStage('app-container');
+    elements.inputStage.classList.add('active-stage');
+    elements.outputStage.classList.remove('active-stage');
+    elements.queryStage.classList.remove('active-stage');
+}
+
+function handleBackToChoice() {
+    elements.appContainer.style.display = 'none';
+
+    elements.inputStage.classList.remove('active-stage');
+    elements.outputStage.classList.remove('active-stage');
+    elements.queryStage.classList.remove('active-stage');
+
+    elements.choiceStage.style.display = 'block';
+    elements.choiceStage.classList.add('active-stage');
+
+    elements.queryResultContainer.innerHTML = '';
+    if(elements.queryTeamSelect) elements.queryTeamSelect.value = '';
+
+    STATE.mainTeam = '';
+    STATE.subTeam = '';
+    STATE.games = [];
+    elements.mainTeamSelect.value = '';
+    elements.subTeamSelect.value = '';
+    elements.matchTitle.textContent = '';
+    elements.matchesContainer.innerHTML = '';
+    render();
+}
+
 
 /**
  * 显示数据库ID错误信息
@@ -1092,6 +1175,123 @@ function generateConfirmationHTML() {
     </div>`;
 
     return html;
+}
+
+/**
+ * 处理“查询赛果”按钮点击事件
+ */
+async function handleGoToQuery() {
+    elements.choiceStage.style.display = 'none';
+    elements.choiceStage.classList.remove('active-stage');
+
+    elements.appContainer.style.display = 'block';
+    elements.queryStage.classList.add('active-stage');
+    
+    elements.inputStage.classList.remove('active-stage');
+    elements.outputStage.classList.remove('active-stage');
+
+
+    try {
+        if (!clerk.user) {
+            alert("请先登录！");
+            handleBackToInput();
+            return;
+        }
+        const token = await clerk.session.getToken();
+        const response = await fetch(`/api/get-teams?databaseId=${STATE.databaseId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('获取队伍列表失败');
+        }
+
+        const { teams } = await response.json();
+        const optionsHTML = teams.map(team => `<option value="${team}">${team}</option>`).join('');
+        elements.queryTeamSelect.innerHTML = `<option value="" disabled selected>请选择队伍进行查询</option>${optionsHTML}`;
+
+    } catch (error) {
+        console.error('获取队伍列表时出错:', error);
+        alert('加载队伍列表失败，请稍后重试或检查数据库ID是否正确。');
+    }
+}
+
+
+/**
+ * 处理查询队伍选择事件
+ */
+async function handleQueryTeamSelect(e) {
+    const teamName = e.target.value;
+    if (!teamName) return;
+
+    elements.queryResultContainer.innerHTML = '<p>查询中...</p>';
+
+    try {
+        const token = await clerk.session.getToken();
+        const response = await fetch(`/api/get-results?databaseId=${STATE.databaseId}&team=${encodeURIComponent(teamName)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('获取赛果失败');
+        }
+
+        const { results } = await response.json();
+        renderQueryResults(results, teamName);
+
+    } catch (error) {
+        console.error('获取赛果时出错:', error);
+        elements.queryResultContainer.innerHTML = '<p style="color:red;">查询失败，请检查网络或联系管理员。</p>';
+    }
+}
+
+
+/**
+ * 渲染查询结果
+ * @param {Array} results - Notion返回的页面对象数组
+ * @param {string} selectedTeam - 当前查询的队伍名
+ */
+function renderQueryResults(results, selectedTeam) {
+    if (results.length === 0) {
+        elements.queryResultContainer.innerHTML = '<p>未找到该队伍的比赛记录。</p>';
+        return;
+    }
+
+    const html = results.map(page => {
+        const props = page.properties;
+        const title = props['标题']?.title[0]?.plain_text || '无标题';
+        const date = props['日期']?.date?.start || '无日期';
+        const homeTeam = props['主场']?.select?.name || '';
+        const awayTeam = props['客场']?.select?.name || '';
+        
+        let resultText = '';
+        if (page.children) {
+            page.children.forEach(block => {
+                if (block.type === 'paragraph' && block.paragraph.rich_text.length > 0) {
+                    resultText += `<p>${block.paragraph.rich_text[0].plain_text}</p>`;
+                }
+            });
+        }
+        
+        return `
+            <div class="game-instance">
+                <h4>${title} (${date})</h4>
+                <div>${resultText}</div>
+            </div>
+        `;
+    }).join('');
+
+    elements.queryResultContainer.innerHTML = html;
+}
+
+/**
+ * 处理返回按钮点击事件
+ */
+function handleBackToInput() {
+    elements.queryStage.classList.remove('active-stage');
+    elements.inputStage.classList.add('active-stage');
+    elements.queryResultContainer.innerHTML = '';
+    elements.queryTeamSelect.value = '';
 }
 
 window.addEventListener('load', startClerk);
