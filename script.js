@@ -1,6 +1,6 @@
 /**
  * IVBL 赛果填写辅助工具
- * @version 3.5.6
+ * @version 3.5.7
  * @author Tosd0
  */
 
@@ -68,6 +68,10 @@ const elements = {
     databaseTitle: document.getElementById('database-title'),
     changeDatabaseContainer: document.getElementById('change-database-container'),
     changeDatabaseLink: document.getElementById('change-database-link'),
+    confirmationStage: document.getElementById('confirmation-stage'),
+    confirmationSummary: document.getElementById('confirmation-summary'),
+    cancelSendButton: document.getElementById('cancel-send-button'),
+    confirmSendButton: document.getElementById('confirm-send-button'),
 };
 
 // Clerk initialization
@@ -112,6 +116,7 @@ async function startClerk() {
         } else {
             elements.loginContainer.classList.add('active-stage');
             elements.databaseIdContainer.classList.remove('active-stage');
+            elements.confirmationStage.classList.remove('active-stage');
             elements.loginContainer.style.display = 'block';
             elements.databaseIdContainer.style.display = 'none';
             elements.appContainer.style.display = 'none';
@@ -134,6 +139,8 @@ async function startClerk() {
 function showDatabaseIdContainer() {
     elements.databaseIdContainer.classList.add('active-stage');
     elements.loginContainer.classList.remove('active-stage');
+    elements.confirmationStage.classList.remove('active-stage');
+    elements.outputStage.classList.remove('active-stage');
     elements.appContainer.style.display = 'none';
 }
 
@@ -205,7 +212,6 @@ function initializeApp() {
     elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
     elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
 
-    // 根据设备类型决定是否显示OBS按钮
     if (!isDesktopDevice()) {
         elements.obsWindowButton.style.display = 'none';
     }
@@ -512,7 +518,7 @@ function collectDataForNotion() {
         children: contentBlocks
     };
     
-    // console.log("直接生成给Notion API的最终Payload:", JSON.stringify(payload, null, 2));
+    // DEBUG: console.log("直接生成给Notion API的最终Payload:", JSON.stringify(payload, null, 2));
     return payload;
 }
 
@@ -545,6 +551,9 @@ function bindEventListeners() {
     if (elements.changeDatabaseLink) {
         elements.changeDatabaseLink.addEventListener('click', handleChangeDatabase);
     }
+
+    if (elements.cancelSendButton) elements.cancelSendButton.addEventListener('click', handleCancelSend);
+    if (elements.confirmSendButton) elements.confirmSendButton.addEventListener('click', handleConfirmSend);
 }
 
 function handleChangeDatabase(e) {
@@ -652,7 +661,33 @@ function handleToggleMatchEnd() {
     render();
 }
 
-async function handleSendToNotion() {
+/**
+ * 显示确认页面
+ */
+function handleSendToNotion() {
+    if (!STATE.isMatchEnd) {
+        alert('请先点击“比赛结束”按钮来最终确定赛果。');
+        return;
+    }
+    const summaryHTML = generateConfirmationHTML();
+    elements.confirmationSummary.innerHTML = summaryHTML;
+
+    elements.outputStage.classList.remove('active-stage');
+    elements.confirmationStage.classList.add('active-stage');
+}
+
+/**
+ * 返回修改
+ */
+function handleCancelSend() {
+    elements.confirmationStage.classList.remove('active-stage');
+    elements.outputStage.classList.add('active-stage');
+}
+
+/**
+ * 执行发送逻辑
+ */
+async function handleConfirmSend() {
     if (!clerk.user) {
         alert('请先登录。');
         return;
@@ -662,6 +697,9 @@ async function handleSendToNotion() {
         alert('请先输入有效的数据库ID。');
         return;
     }
+    
+    elements.confirmSendButton.disabled = true;
+    elements.confirmSendButton.textContent = '发送中...';
 
     const data = collectDataForNotion();
 
@@ -680,6 +718,8 @@ async function handleSendToNotion() {
 
         if (response.ok) {
             alert('成功发送到Notion！');
+            elements.confirmationStage.classList.remove('active-stage');
+            elements.inputStage.classList.add('active-stage');
         } else {
             const errorResult = await response.json();
             alert(`发送失败: ${errorResult.message || '未知错误'}`);
@@ -687,8 +727,12 @@ async function handleSendToNotion() {
     } catch (error) {
         console.error('发送请求时出错:', error);
         alert('发送请求时发生网络错误。');
+    } finally {
+        elements.confirmSendButton.disabled = false;
+        elements.confirmSendButton.textContent = '确认无误并发送';
     }
 }
+
 
 // --- 6. DATA PERSISTENCE & OBS WINDOW ---
 
@@ -980,6 +1024,74 @@ function showDatabaseError(message) {
     setTimeout(() => {
         elements.databaseError.style.display = 'none';
     }, 3000);
+}
+
+/**
+ * 生成用于确认页面的HTML内容
+ * @returns {string} - HTML字符串
+ */
+function generateConfirmationHTML() {
+    const { mainTeam, subTeam, games } = STATE;
+    let html = `<h3>${mainTeam} vs ${subTeam}</h3>`;
+
+    const RESULT_TEXT_MAP = {
+        hunter: { '4': '四杀', '3': '三杀', '2': '平局', '1': '一杀', '0': '零杀' },
+        survivor: { '4': '四跑', '3': '三跑', '2': '平局', '1': '一跑', '0': '零跑' }
+    };
+    
+    games.forEach(game => {
+        if (!game.role1 && !game.role2) return;
+
+        html += `<h4>${game.id.toUpperCase()}</h4>`;
+        
+        let gameScoreMain = 0;
+        let gameScoreSub = 0;
+
+        // 上半
+        if (game.role1 && game.result1) {
+            const mainRole = game.role1;
+            const subRole = mainRole === ROLES.hunter ? ROLES.survivor : ROLES.hunter;
+            const resultText = RESULT_TEXT_MAP[mainRole === ROLES.hunter ? 'hunter' : 'survivor'][game.result1];
+            const timeText = game.id === 'tiebreaker' && game.time1 ? `，对局时长 ${game.time1} 秒` : '';
+            html += `<p>上半：${mainTeam}的<strong>${mainRole}</strong> vs ${subTeam}的<strong>${subRole}</strong>，结果为<strong>${resultText}</strong>${timeText}。</p>`;
+            
+            const half1Scores = getHalfScores(game, 1);
+            gameScoreMain += half1Scores.main;
+            gameScoreSub += half1Scores.sub;
+        }
+
+        // 下半
+        if (game.role2 && game.result2) {
+            const mainRole = game.role2;
+            const subRole = mainRole === ROLES.hunter ? ROLES.survivor : ROLES.hunter;
+            const resultText = RESULT_TEXT_MAP[mainRole === ROLES.hunter ? 'hunter' : 'survivor'][game.result2];
+            const timeText = game.id === 'tiebreaker' && game.time2 ? `，对局时长 ${game.time2} 秒` : '';
+            html += `<p>下半：${mainTeam}的<strong>${mainRole}</strong> vs ${subTeam}的<strong>${subRole}</strong>，结果为<strong>${resultText}</strong>${timeText}。</p>`;
+
+            const half2Scores = getHalfScores(game, 2);
+            gameScoreMain += half2Scores.main;
+            gameScoreSub += half2Scores.sub;
+        }
+
+        html += `<p>本轮比分：<strong>${gameScoreMain} : ${gameScoreSub}</strong></p>`;
+    });
+
+    // 最终总结
+    const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub } = calculateScores();
+    let winnerText = '';
+    if (bigScoreMain > bigScoreSub || (bigScoreMain === bigScoreSub && smallScoreMain > smallScoreSub)) {
+        winnerText = `<strong>${mainTeam}</strong> 取得比赛的胜利。`;
+    } else if (bigScoreSub > bigScoreMain || (bigScoreSub === bigScoreMain && smallScoreSub > smallScoreMain)) {
+        winnerText = `<strong>${subTeam}</strong> 取得比赛的胜利。`;
+    } else {
+        winnerText = '请人工核对加赛信息。';
+    }
+
+    html += `<div class="final-summary">
+        <p>比赛结束，大分 <strong>${bigScoreMain} : ${bigScoreSub}</strong>，小分 <strong>${smallScoreMain} : ${smallScoreSub}</strong>，${winnerText}</p>
+    </div>`;
+
+    return html;
 }
 
 window.addEventListener('load', startClerk);

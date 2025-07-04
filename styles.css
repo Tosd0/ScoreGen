@@ -208,12 +208,17 @@ select:focus, input[type="text"]:focus {
   transition: var(--transition-fast);
   text-decoration: none;
 }
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 
 .btn-primary {
   background-color: var(--color-primary);
   color: #fff;
 }
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background-color: #00bfff;
   box-shadow: 0 0 15px var(--color-primary-glow);
   transform: translateY(-2px);
@@ -223,7 +228,7 @@ select:focus, input[type="text"]:focus {
   background-color: var(--color-secondary);
   color: var(--color-text-main);
 }
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background-color: #777783;
   transform: translateY(-2px);
 }
@@ -391,4 +396,40 @@ select:focus, input[type="text"]:focus {
   flex-direction: column;
   gap: 2px;
   width: 140px;
+}
+
+.confirmation-summary-content {
+  line-height: 1.8;
+  color: var(--color-text-muted);
+}
+.confirmation-summary-content h3 {
+  color: var(--color-text-main);
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+}
+.confirmation-summary-content h4 {
+  margin-top: 25px;
+  margin-bottom: 10px;
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 5px;
+  font-size: 1.1rem;
+}
+.confirmation-summary-content p {
+  margin-bottom: 8px;
+}
+.confirmation-summary-content strong {
+    color: var(--color-text-main);
+    font-weight: 500;
+}
+.confirmation-summary-content .final-summary {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 2px solid var(--color-primary);
+  font-size: 1.1rem;
+  text-align: center;
+}
+.confirmation-summary-content .final-summary strong {
+    color: var(--color-highlight);
 }
