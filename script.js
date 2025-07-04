@@ -60,6 +60,7 @@ const elements = {
     userButtonComponent: document.getElementById('user-button'),
     greetingMessage: document.getElementById('greeting-message'),
     dbGreetingMessage: document.getElementById('db-greeting-message'),
+    choiceGreetingMessage: document.getElementById('choice-greeting-message'),
     databaseIdContainer: document.getElementById('database-id-container'),
     databaseIdInput: document.getElementById('database-id-input'),
     verifyDatabaseButton: document.getElementById('verify-database-button'),
@@ -168,8 +169,10 @@ function showStage(stageId) {
     });
 
     if (stageId === 'app-container') {
+        elements.appContainer.style.display = 'block';
         elements.inputStage.classList.add('active-stage');
         elements.outputStage.classList.remove('active-stage');
+        elements.queryStage.classList.remove('active-stage');
     } else if (stageId === 'query-stage') {
         elements.appContainer.style.display = 'block';
         elements.inputStage.classList.remove('active-stage');
@@ -178,25 +181,21 @@ function showStage(stageId) {
     }
 }
 
+
 /**
  * 显示数据库ID输入界面
  */
 function showDatabaseIdContainer() {
-    elements.databaseIdContainer.classList.add('active-stage');
-    elements.loginContainer.classList.remove('active-stage');
-    elements.confirmationStage.classList.remove('active-stage');
-    elements.outputStage.classList.remove('active-stage');
-    elements.appContainer.style.display = 'none';
+    showStage('database-id-container');
 }
 
 /**
  * 显示主应用界面
  */
 function showAppContainer() {
-    elements.databaseIdContainer.classList.remove('active-stage');
-    elements.loginContainer.classList.remove('active-stage');
-    elements.appContainer.style.display = 'block';
+    showStage('app-container');
 }
+
 
 /**
  * 验证数据库ID并获取数据库标题
@@ -937,11 +936,12 @@ function createOBSWatermark(user) {
 }
 
 function updateGreeting(user) {
-    if (!elements.greetingMessage || !elements.dbGreetingMessage) return;
+    if (!elements.greetingMessage || !elements.dbGreetingMessage || !elements.choiceGreetingMessage) return;
 
     if (!user) {
         elements.greetingMessage.textContent = '';
         elements.dbGreetingMessage.textContent = '';
+        elements.choiceGreetingMessage.textContent = '';
         return;
     }
 
@@ -964,9 +964,11 @@ function updateGreeting(user) {
     
     elements.greetingMessage.textContent = fullGreeting;
     elements.dbGreetingMessage.textContent = fullGreeting;
+    elements.choiceGreetingMessage.textContent = fullGreeting;
     
     createWatermark(user);
 }
+
 
 /**
  * 创建页面水印
