@@ -498,6 +498,7 @@ function getHalfDisplay(game, halfIndex, teamType) {
  */
 function collectDataForNotion() {
     const { mainTeam, subTeam, homeLineup, guestLineup } = STATE;
+    const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub } = calculateScores();
 
     const pageProperties = {
         "标题": {
@@ -558,8 +559,8 @@ function collectDataForNotion() {
         if (half1Result.valid) {
             const mainTeamRole = game.role1;
             const text = mainTeamRole === '监管'
-                ? `上半场 ${half1Result.main}监(${game.time1 || ''}) : ${half1Result.sub}求`
-                : `上半场 ${half1Result.main}求(${game.time1 || ''}) : ${half1Result.sub}监`;
+                ? `上半场 监${half1Result.main} : ${half1Result.sub}求(${game.time1 || ''})`
+                : `上半场 求${half1Result.main} : ${half1Result.sub}监(${game.time1 || ''})`;
 
             contentBlocks.push({
                 "object": "block",
@@ -574,8 +575,8 @@ function collectDataForNotion() {
         if (half2Result.valid) {
             const mainTeamRole = game.role2;
             const text = mainTeamRole === '监管'
-                ? `下半场 ${half2Result.main}监(${game.time2 || ''}) : ${half2Result.sub}求`
-                : `下半场 ${half2Result.main}求(${game.time2 || ''}) : ${half2Result.sub}监`;
+                ? `下半场 监${half2Result.main} : ${half2Result.sub}求(${game.time2 || ''})`
+                : `下半场 求${half2Result.main} : ${half2Result.sub}监(${game.time2 || ''})`;
 
             contentBlocks.push({
                 "object": "block",
@@ -585,13 +586,57 @@ function collectDataForNotion() {
                 }
             });
         }
+
+        if (half1Result.valid && half2Result.valid) {
+            const roundSmallScoreMain = half1Result.main + half2Result.main;
+            const roundSmallScoreSub = half1Result.sub + half2Result.sub;
+            contentBlocks.push({
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [{
+                        "type": "text",
+                        "text": { "content": `本轮小分：${roundSmallScoreMain} : ${roundSmallScoreSub}` }
+                    }]
+                }
+            });
+        }
+    });
+
+    contentBlocks.push({
+        "object": "block",
+        "type": "paragraph",
+        "paragraph": {
+            "rich_text": [{ "type": "text", "text": { "content": " " } }]
+        }
+    });
+
+    contentBlocks.push({
+        "object": "block",
+        "type": "paragraph",
+        "paragraph": {
+            "rich_text": [
+                { "type": "text", "text": { "content": "大分 " } },
+                { 
+                    "type": "text", 
+                    "text": { "content": `${bigScoreMain} : ${bigScoreSub}` },
+                    "annotations": { "bold": true } 
+                },
+                { "type": "text", "text": { "content": "，小分 " } },
+                { 
+                    "type": "text", 
+                    "text": { "content": `${smallScoreMain} : ${smallScoreSub}` },
+                    "annotations": { "bold": true } 
+                }
+            ]
+        }
     });
 
     const payload = {
         properties: pageProperties,
         children: contentBlocks
     };
-    
+
     // DEBUG: console.log("直接生成给Notion API的最终Payload:", JSON.stringify(payload, null, 2));
     return payload;
 }
