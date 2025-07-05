@@ -125,9 +125,15 @@
             <div id="output-stage" class="card">
                 <div class="card-body">
                     <h2 id="match-title" class="card-title"></h2>
-                    <div id="restored-data" style="display:none;" class="restore-info">
-                        <h3>上次填写的数据：</h3>
-                        <pre id="restored-data-content"></pre>
+                    <div class="lineup-inputs" style="margin-bottom: 20px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;">
+                        <div style="margin-bottom: 10px;">
+                            <label for="home-lineup" id="home-lineup-label">主队 首发名单：</label>
+                            <input type="text" id="home-lineup" style="width: 100%;" placeholder="复制到此处">
+                        </div>
+                        <div>
+                            <label for="guest-lineup" id="guest-lineup-label">客队首发名单：</label>
+                            <input type="text" id="guest-lineup" style="width: 100%;" placeholder="复制到此处">
+                        </div>
                     </div>
                     <div id="matches" class="matches-container"></div>
                     <div class="action-buttons">

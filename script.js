@@ -21,10 +21,10 @@ const MATCH_MODES = {
 let STATE = {
     mainTeam: '',
     subTeam: '',
+    mainLineup: '',
+    guestLineup: '',
     matchMode: 'bo5',
     games: [], // { id: 'bo1', role1: '', result1: '', role2: '', result2: '', time1: '', time2: '' }
-    isIntermission: false,
-    isMatchEnd: false,
     databaseId: '',
     databaseTitle: ''
 };
@@ -45,8 +45,10 @@ const elements = {
     resultsContainer: document.getElementById('results'),
     addBoButton: document.getElementById('add-bo'),
     addTiebreakerButton: document.getElementById('add-tiebreaker'),
-    restoredDataContainer: document.getElementById('restored-data'),
-    restoredDataContent: document.getElementById('restored-data-content'),
+    homeLineupInput: document.getElementById('home-lineup'),
+    guestLineupInput: document.getElementById('guest-lineup'),
+    homeLineupLabel: document.getElementById('home-lineup-label'),
+    guestLineupLabel: document.getElementById('guest-lineup-label'),
     // 按钮
     nextButton: document.getElementById('next-button'),
     restoreButton: document.getElementById('restore-button'),
@@ -604,6 +606,9 @@ function bindEventListeners() {
     if (elements.backToChoiceFromFillButton) elements.backToChoiceFromFillButton.addEventListener('click', handleBackToChoice);
     if (elements.queryTeamSelect) elements.queryTeamSelect.addEventListener('change', handleQueryTeamSelect);
     if (elements.backToChoiceButton) elements.backToChoiceButton.addEventListener('click', handleBackToChoice);
+    if (elements.homeLineupInput) elements.homeLineupInput.addEventListener('input', handleLineupInputChange);
+    if (elements.guestLineupInput) elements.guestLineupInput.addEventListener('input', handleLineupInputChange);
+
 
 
 }
@@ -635,6 +640,14 @@ function handleNextStep() {
     STATE.mainTeam = mainTeam;
     STATE.subTeam = subTeam;
     STATE.matchMode = matchMode;
+
+    STATE.homeLineup = '';
+    STATE.guestLineup = '';
+    elements.homeLineupInput.value = '';
+    elements.guestLineupInput.value = '';
+    elements.homeLineupLabel.textContent = `${mainTeam} 首发名单：`;
+    elements.guestLineupLabel.textContent = `${subTeam} 首发名单：`;
+
 
     STATE.games = [];
     const initialGameCount = MATCH_MODES[matchMode].initialGames;
@@ -687,6 +700,15 @@ function handleGameInputChange(e) {
         saveStateToLocalStorage();
         updateOBSWindow();
     }
+}
+
+function handleLineupInputChange(e) {
+    if (e.target.id === 'home-lineup') {
+        STATE.homeLineup = e.target.value;
+    } else {
+        STATE.guestLineup = e.target.value;
+    }
+    saveStateToLocalStorage();
 }
 
 function handleAddBo() {
@@ -800,6 +822,15 @@ function handleRestoreState() {
         elements.subTeamSelect.value = STATE.subTeam;
         const matchModeRadio = elements.matchModeSelect.querySelector(`input[value="${STATE.matchMode}"]`);
         if (matchModeRadio) matchModeRadio.checked = true;
+
+        if (elements.homeLineupInput) {
+            elements.homeLineupInput.value = STATE.homeLineup || '';
+            elements.homeLineupLabel.textContent = `${STATE.mainTeam || '主队'} 首发名单：`;
+        }
+        if (elements.guestLineupInput) {
+            elements.guestLineupInput.value = STATE.guestLineup || '';
+            elements.guestLineupLabel.textContent = `${STATE.subTeam || '客队'} 首发名单：`;
+        }
 
         elements.inputStage.classList.remove('active-stage');
         elements.outputStage.classList.add('active-stage');
@@ -1090,8 +1121,12 @@ function handleBackToChoice() {
     STATE.mainTeam = '';
     STATE.subTeam = '';
     STATE.games = [];
+    STATE.homeLineup = '';
+    STATE.guestLineup = '';
     elements.mainTeamSelect.value = '';
     elements.subTeamSelect.value = '';
+    elements.homeLineupInput.value = '';
+    elements.guestLineupInput.value = '';
     elements.matchTitle.textContent = '';
     elements.matchesContainer.innerHTML = '';
     render();
