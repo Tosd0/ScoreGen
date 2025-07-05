@@ -1,6 +1,6 @@
 /**
  * IVBL 赛果填写辅助工具
- * @version 3.7.0
+ * @version 3.8.0
  * @author Tosd0
  */
 
@@ -497,7 +497,7 @@ function getHalfDisplay(game, halfIndex, teamType) {
  * @returns {object} 一个包含 properties 和 children 的对象
  */
 function collectDataForNotion() {
-    const { mainTeam, subTeam } = STATE;
+    const { mainTeam, subTeam, homeLineup, guestLineup } = STATE;
 
     const pageProperties = {
         "标题": {
@@ -510,6 +510,34 @@ function collectDataForNotion() {
     };
 
     const contentBlocks = [];
+    contentBlocks.push({
+        "object": "block",
+        "type": "heading_2",
+        "heading_2": {
+            "rich_text": [{ "type": "text", "text": { "content": "主队首发名单" } }]
+        }
+    })
+    contentBlocks.push({
+        "object": "block",
+        "type": "paragraph",
+        "paragraph": {
+            "rich_text": [{ "type": "text", "text": { "content": homeLineup || '未填写' } }]
+        }
+    })
+    contentBlocks.push({
+        "object": "block",
+        "type": "heading_2",
+        "heading_2": {
+            "rich_text": [{ "type": "text", "text": { "content": "客队首发名单" } }]
+        }
+    })
+    contentBlocks.push({
+        "object": "block",
+        "type": "paragraph",
+        "paragraph": {
+            "rich_text": [{ "type": "text", "text": { "content": guestLineup || '未填写' } }]
+        }
+    })
     contentBlocks.push({
         "object": "block",
         "type": "heading_2",
@@ -739,7 +767,7 @@ function handleToggleMatchEnd() {
  */
 function handleSendToNotion() {
     if (!STATE.isMatchEnd) {
-        alert('请先点击“比赛结束”按钮来最终确定赛果。');
+        alert('请先点击“比赛结束”按钮。');
         return;
     }
     const summaryHTML = generateConfirmationHTML();
@@ -1151,8 +1179,13 @@ function showDatabaseError(message) {
  * @returns {string} - HTML字符串
  */
 function generateConfirmationHTML() {
-    const { mainTeam, subTeam, games } = STATE;
+    const { mainTeam, subTeam, games, homeLineup, guestLineup} = STATE;
     let html = `<h3>${mainTeam} vs ${subTeam}</h3>`;
+
+    html += `<div class="lineup-confirmation" style="margin-bottom: 20px;">
+                <p><strong>${mainTeam}首发：</strong><br>${homeLineup.replace(/\n/g, '<br>')}</p>
+                <p><strong>${subTeam}首发：</strong><br>${guestLineup.replace(/\n/g, '<br>')}</p>
+             </div>`;
 
     const RESULT_TEXT_MAP = {
         hunter: { '4': '四杀', '3': '三杀', '2': '平局', '1': '一杀', '0': '零杀' },

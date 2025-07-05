@@ -30,7 +30,7 @@
     <header class="app-header">
         <div id="user-button" style="position: absolute; top: 20px; right: 20px;"></div>
         <h1>IVBL 计分板</h1>
-        <p class="version">v3.7.0</p>
+        <p class="version">v3.8.0</p>
     </header>
 
     <div id="login-container" class="card active-stage" style="text-align: center; max-width: 480px; margin: 80px auto;">
@@ -128,11 +128,11 @@
                     <div class="lineup-inputs" style="margin-bottom: 20px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;">
                         <div style="margin-bottom: 10px;">
                             <label for="home-lineup" id="home-lineup-label">主队 首发名单：</label>
-                            <input type="text" id="home-lineup" style="width: 100%;" placeholder="复制到此处">
+                            <textarea id="home-lineup" style="width: 100%;" rows="3" placeholder="复制到此处"></textarea>
                         </div>
                         <div>
                             <label for="guest-lineup" id="guest-lineup-label">客队首发名单：</label>
-                            <input type="text" id="guest-lineup" style="width: 100%;" placeholder="复制到此处">
+                            <textarea id="guest-lineup" style="width: 100%;" rows="3" placeholder="复制到此处"></textarea>
                         </div>
                     </div>
                     <div id="matches" class="matches-container"></div>
