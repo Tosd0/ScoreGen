@@ -508,6 +508,10 @@ function collectDataForNotion() {
         "客场": { "select": { "name": subTeam } },
         "比赛状态": { "status": { "name": "已结束" } },
         "日期": { "date": { "start": new Date().toISOString().split('T')[0] } },
+        "主队小分": { "number": smallScoreMain },
+        "客队小分": { "number": smallScoreSub },
+        "主队大分": { "number": bigScoreMain },
+        "客队大分": { "number": bigScoreSub },
     };
 
     const contentBlocks = [];
@@ -587,7 +591,7 @@ function collectDataForNotion() {
             });
         }
 
-        if (half1Result.valid && half2Result.valid) {
+        if (half1Result.valid || half2Result.valid) {
             const roundSmallScoreMain = half1Result.main + half2Result.main;
             const roundSmallScoreSub = half1Result.sub + half2Result.sub;
             contentBlocks.push({
@@ -596,7 +600,7 @@ function collectDataForNotion() {
                 "paragraph": {
                     "rich_text": [{
                         "type": "text",
-                        "text": { "content": `本轮小分：${roundSmallScoreMain} : ${roundSmallScoreSub}` }
+                        "text": { "content": `${roundSmallScoreMain} : ${roundSmallScoreSub}` }
                     }]
                 }
             });
@@ -616,18 +620,11 @@ function collectDataForNotion() {
         "type": "paragraph",
         "paragraph": {
             "rich_text": [
-                { "type": "text", "text": { "content": "大分 " } },
-                { 
-                    "type": "text", 
-                    "text": { "content": `${bigScoreMain} : ${bigScoreSub}` },
-                    "annotations": { "bold": true } 
+                { "type": "text", 
+                    "text": { "content": 
+                        `大分 ${bigScoreMain} : ${bigScoreSub}，小分 ${smallScoreMain} : ${smallScoreSub}` 
+                    } 
                 },
-                { "type": "text", "text": { "content": "，小分 " } },
-                { 
-                    "type": "text", 
-                    "text": { "content": `${smallScoreMain} : ${smallScoreSub}` },
-                    "annotations": { "bold": true } 
-                }
             ]
         }
     });
