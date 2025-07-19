@@ -30,9 +30,6 @@ export default async function handler(req, res) {
 
     const propertiesWithUser = {
         ...properties,
-        "裁判": {
-            "rich_text": [{ "type": "text", "text": { "content": submitterName } }]
-        },
         "上报人": {
             "rich_text": [{ "type": "text", "text": { "content": submitterName } }]
         }
@@ -84,7 +81,7 @@ export default async function handler(req, res) {
           "type": "paragraph",
           "paragraph": {
             "rich_text": [
-              { "type": "text", "text": { "content": `提交人：${submitterName}` } }
+              { "type": "text", "text": { "content": `追加提交人：${submitterName}` } }
             ]
           }
         },
@@ -93,7 +90,7 @@ export default async function handler(req, res) {
           "type": "paragraph",
           "paragraph": {
             "rich_text": [
-              { "type": "text", "text": { "content": "提交时间：" } },
+              { "type": "text", "text": { "content": "追加提交时间：" } },
               {
                 "type": "mention",
                 "mention": {
@@ -132,7 +129,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "提交到 Notion 的数据验证失败，请检查数据库字段是否匹配。", error: error.body });
     }
     if (error.code === 'unauthorized') {
-      return res.status(403).json({ message: "机器人无权执行此操作。", error: error.body });
+      return res.status(403).json({ message: "未授权", error: error.body });
     }
     res.status(500).json({ message: "服务器出错了", error: error.body || error.message });
   }
