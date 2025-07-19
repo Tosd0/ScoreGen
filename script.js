@@ -68,9 +68,9 @@ const MATCH_MODES = {
 };
 
 let STATE = {
-    mainTeam: '',
-    subTeam: '',
-    mainLineup: '',
+    homeTeam: '',
+    awayTeam: '',
+    homeLineup: '',
     guestLineup: '',
     matchMode: 'bo5',
     games: [], // { id: 'bo1', role1: '', result1: '', role2: '', result2: '', time1: '', time2: '' }
@@ -84,8 +84,8 @@ let isAppInitialized = false;
 // --- 2. DOM ELEMENT REFERENCES ---
 const elements = {
     appContainer: document.getElementById('app-container'),
-    mainTeamSelect: document.getElementById('main-team'),
-    subTeamSelect: document.getElementById('sub-team'),
+    homeTeamSelect: document.getElementById('home-team'),
+    awayTeamSelect: document.getElementById('away-team'),
     matchModeSelect: document.getElementById('game-mode-select'),
     inputStage: document.getElementById('input-stage'),
     outputStage: document.getElementById('output-stage'),
@@ -304,8 +304,8 @@ function initializeApp() {
     if (isAppInitialized) return;
     console.log("应用首次初始化...");
     const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
-    elements.mainTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
-    elements.subTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
+    elements.homeTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
+    elements.awayTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
 
     if (!isDesktopDevice()) {
         elements.obsWindowButton.style.display = 'none';
@@ -370,7 +370,7 @@ function createGameUI(game, isTiebreaker) {
 
         return `
             <div>
-                ${STATE.mainTeam}（<select class="role-select" data-half="${half}">
+                ${STATE.homeTeam}（<select class="role-select" data-half="${half}">
                     <option value="">---</option>
                     ${roleOptions}
                 </select>）
@@ -401,27 +401,27 @@ function updateButtonVisibility() {
 }
 
 function renderResultTable() {
-    const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub, gameDetails } = calculateScores();
+    const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway, gameDetails } = calculateScores();
 
     let winningTeam = null;
     if (STATE.isMatchEnd) {
-        if (bigScoreMain !== bigScoreSub) {
-            winningTeam = bigScoreMain > bigScoreSub ? 'main' : 'sub';
-        } else if (smallScoreMain !== smallScoreSub) {
-            winningTeam = smallScoreMain > smallScoreSub ? 'main' : 'sub';
+        if (bigScoreHome !== bigScoreAway) {
+            winningTeam = bigScoreHome > bigScoreAway ? 'home' : 'away';
+        } else if (smallScoreHome !== smallScoreAway) {
+            winningTeam = smallScoreHome > smallScoreAway ? 'home' : 'away';
         }
     }
 
-    const mainHighlight = winningTeam === 'main' ? 'class="highlight"' : '';
-    const subHighlight = winningTeam === 'sub' ? 'class="highlight"' : '';
+    const homeHighlight = winningTeam === 'home' ? 'class="highlight"' : '';
+    const awayHighlight = winningTeam === 'away' ? 'class="highlight"' : '';
 
     const headerHTML = `
         <div class="match-header" style="text-align: center; margin-bottom: 10px;">
             <h2 style="margin: 0; font-size: 26px;">
-                <span ${mainHighlight}>${STATE.mainTeam}</span> vs <span ${subHighlight}>${STATE.subTeam}</span>
+                <span ${homeHighlight}>${STATE.homeTeam}</span> vs <span ${awayHighlight}>${STATE.awayTeam}</span>
             </h2>
-            <div class="big-score" style="font-size: 22px; margin: 2px 0;">大分 ${bigScoreMain}:${bigScoreSub}</div>
-            <div class="small-score" style="font-size: 18px; margin: 2px 0;">小分 ${smallScoreMain}:${smallScoreSub}</div>
+            <div class="big-score" style="font-size: 22px; margin: 2px 0;">大分 ${bigScoreHome}:${bigScoreAway}</div>
+            <div class="small-score" style="font-size: 18px; margin: 2px 0;">小分 ${smallScoreHome}:${smallScoreAway}</div>
             ${STATE.isIntermission ? '<div class="intermission-alert" style="color: #ffeb3b; font-size: 18px;">场间休息中，请耐心等待～</div>' : ''}
         </div>
     `;
@@ -429,8 +429,8 @@ function renderResultTable() {
     const tableHeaders = gameDetails.map(g => `<th colspan="2">${g.label}</th>`).join('');
     const halfHeaders = gameDetails.map(() => `<th>上半</th><th>下半</th>`).join('');
 
-    const mainTeamRow = gameDetails.map(g => `<td ${mainHighlight}>${g.main1}</td><td ${mainHighlight}>${g.main2}</td>`).join('');
-    const subTeamRow = gameDetails.map(g => `<td ${subHighlight}>${g.sub1}</td><td ${subHighlight}>${g.sub2}</td>`).join('');
+    const homeTeamRow = gameDetails.map(g => `<td ${homeHighlight}>${g.home1}</td><td ${homeHighlight}>${g.home2}</td>`).join('');
+    const awayTeamRow = gameDetails.map(g => `<td ${awayHighlight}>${g.away1}</td><td ${awayHighlight}>${g.away2}</td>`).join('');
 
     elements.resultsContainer.innerHTML = `
         <div style="padding: 0 25px; overflow-x:auto;">
@@ -441,8 +441,8 @@ function renderResultTable() {
                     <tr>${halfHeaders}</tr>
                 </thead>
                 <tbody>
-                    <tr><td ${mainHighlight}>${STATE.mainTeam}</td>${mainTeamRow}</tr>
-                    <tr><td ${subHighlight}>${STATE.subTeam}</td>${subTeamRow}</tr>
+                    <tr><td ${homeHighlight}>${STATE.homeTeam}</td>${homeTeamRow}</tr>
+                    <tr><td ${awayHighlight}>${STATE.awayTeam}</td>${awayTeamRow}</tr>
                 </tbody>
             </table>
             <div style="color: #ffeb3b; font-size: 12px; text-align: center; margin-top: 5px;" class="role-note">H为监管 S为求生</div>
@@ -456,62 +456,62 @@ function renderResultTable() {
  * @returns {object}
  */
 function calculateScores() {
-    let bigScoreMain = 0, bigScoreSub = 0;
-    let smallScoreMain = 0, smallScoreSub = 0;
+    let bigScoreHome = 0, bigScoreAway = 0;
+    let smallScoreHome = 0, smallScoreAway = 0;
     const gameDetails = [];
 
     STATE.games.forEach(game => {
         const half1 = getHalfScores(game, 1);
         const half2 = getHalfScores(game, 2);
 
-        smallScoreMain += half1.main + half2.main;
-        smallScoreSub += half1.sub + half2.sub;
+        smallScoreHome += half1.home + half2.home;
+        smallScoreAway += half1.away + half2.away;
 
         if (half1.valid && half2.valid) {
-            const totalMain = half1.main + half2.main;
-            const totalSub = half1.sub + half2.sub;
-            if (totalMain > totalSub) bigScoreMain++;
-            else if (totalSub > totalMain) bigScoreSub++;
+            const totalHome = half1.home + half2.home;
+            const totalAway = half1.away + half2.away;
+            if (totalHome > totalAway) bigScoreHome++;
+            else if (totalAway > totalHome) bigScoreAway++;
         }
 
         gameDetails.push({
             label: game.id.toUpperCase(),
-            main1: getHalfDisplay(game, 1, 'main'),
-            main2: getHalfDisplay(game, 2, 'main'),
-            sub1: getHalfDisplay(game, 1, 'sub'),
-            sub2: getHalfDisplay(game, 2, 'sub'),
+            home1: getHalfDisplay(game, 1, 'home'),
+            home2: getHalfDisplay(game, 2, 'home'),
+            away1: getHalfDisplay(game, 1, 'away'),
+            away2: getHalfDisplay(game, 2, 'away'),
         });
     });
 
-    return { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub, gameDetails };
+    return { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway, gameDetails };
 }
 
 /**
  * 获取单个半场的分数
  * @param {object} game
  * @param {number} halfIndex
- * @returns {{main: number, sub: number, valid: boolean}}
+ * @returns {{home: number, away: number, valid: boolean}}
  */
 function getHalfScores(game, halfIndex) {
     const POINTS = {
-        '4': { main: 5, sub: 0 },
-        '3': { main: 3, sub: 1 },
-        '2': { main: 2, sub: 2 },
-        '1': { main: 1, sub: 3 },
-        '0': { main: 0, sub: 5 }
+        '4': { home: 5, away: 0 },
+        '3': { home: 3, away: 1 },
+        '2': { home: 2, away: 2 },
+        '1': { home: 1, away: 3 },
+        '0': { home: 0, away: 5 }
     };
 
     const role = game[`role${halfIndex}`];
     const result = game[`result${halfIndex}`];
 
     if (!role || result === '' || result === null || result === undefined) {
-        return { main: 0, sub: 0, valid: false };
+        return { home: 0, away: 0, valid: false };
     }
 
     const points = POINTS[result];
 
     if (!points) {
-        return { main: 0, sub: 0, valid: false };
+        return { home: 0, away: 0, valid: false };
     }
 
     return { ...points, valid: true };
@@ -521,23 +521,23 @@ function getHalfScores(game, halfIndex) {
  * 获取用于在表格中显示的半场结果字符串
  * @param {object} game
  * @param {number} halfIndex
- * @param {string} teamType - 'main' 或 'sub'
+ * @param {string} teamType - 'home' 或 'away'
  * @returns {string}
  */
 function getHalfDisplay(game, halfIndex, teamType) {
-    const { main, sub, valid } = getHalfScores(game, halfIndex);
+    const { home, away, valid } = getHalfScores(game, halfIndex);
     if (!valid) return '-';
 
-    const mainRole = game[`role${halfIndex}`];
-    const mainPrefix = mainRole === ROLES.hunter ? 'H' : 'S';
-    const subPrefix = mainRole === ROLES.hunter ? 'S' : 'H';
+    const homeRole = game[`role${halfIndex}`];
+    const homePrefix = homeRole === ROLES.hunter ? 'H' : 'S';
+    const awayPrefix = homeRole === ROLES.hunter ? 'S' : 'H';
     const time = game[`time${halfIndex}`];
     const timeSuffix = time ? `(${time})` : '';
 
-    if (teamType === 'main') {
-        return `${mainPrefix}${main}${timeSuffix}`;
+    if (teamType === 'home') {
+        return `${homePrefix}${home}${timeSuffix}`;
     } else {
-        return `${subPrefix}${sub}${timeSuffix}`;
+        return `${awayPrefix}${away}${timeSuffix}`;
     }
 }
 
@@ -546,21 +546,21 @@ function getHalfDisplay(game, halfIndex, teamType) {
  * @returns {object} 一个包含 properties 和 children 的对象
  */
 function collectDataForNotion() {
-    const { mainTeam, subTeam, homeLineup, guestLineup } = STATE;
-    const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub } = calculateScores();
+    const { homeTeam, awayTeam, homeLineup, guestLineup } = STATE;
+    const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway } = calculateScores();
 
     const pageProperties = {
         "标题": {
-            "title": [{ "text": { "content": `${mainTeam} vs ${subTeam}` } }]
+            "title": [{ "text": { "content": `${homeTeam} vs ${awayTeam}` } }]
         },
-        "主场": { "select": { "name": mainTeam } },
-        "客场": { "select": { "name": subTeam } },
+        "主场": { "select": { "name": homeTeam } },
+        "客场": { "select": { "name": awayTeam } },
         "比赛状态": { "status": { "name": "已结束" } },
         "日期": { "date": { "start": new Date().toISOString().split('T')[0] } },
-        "主队小分": { "number": smallScoreMain },
-        "客队小分": { "number": smallScoreSub },
-        "主队大分": { "number": bigScoreMain },
-        "客队大分": { "number": bigScoreSub },
+        "主队小分": { "number": smallScoreHome },
+        "客队小分": { "number": smallScoreAway },
+        "主队大分": { "number": bigScoreHome },
+        "客队大分": { "number": bigScoreAway },
     };
 
     const contentBlocks = [];
@@ -610,10 +610,10 @@ function collectDataForNotion() {
 
         const half1Result = getHalfScores(game, 1);
         if (half1Result.valid) {
-            const mainTeamRole = game.role1;
-            const text = mainTeamRole === '监管'
-                ? `上半场 监${half1Result.main} : ${half1Result.sub}求(${game.time1 || ''})`
-                : `上半场 求${half1Result.main} : ${half1Result.sub}监(${game.time1 || ''})`;
+            const homeTeamRole = game.role1;
+            const text = homeTeamRole === '监管'
+                ? `上半场 监${half1Result.home} : ${half1Result.away}求(${game.time1 || ''})`
+                : `上半场 求${half1Result.home} : ${half1Result.away}监(${game.time1 || ''})`;
 
             contentBlocks.push({
                 "object": "block",
@@ -626,10 +626,10 @@ function collectDataForNotion() {
 
         const half2Result = getHalfScores(game, 2);
         if (half2Result.valid) {
-            const mainTeamRole = game.role2;
-            const text = mainTeamRole === '监管'
-                ? `下半场 监${half2Result.main} : ${half2Result.sub}求(${game.time2 || ''})`
-                : `下半场 求${half2Result.main} : ${half2Result.sub}监(${game.time2 || ''})`;
+            const homeTeamRole = game.role2;
+            const text = homeTeamRole === '监管'
+                ? `下半场 监${half2Result.home} : ${half2Result.away}求(${game.time2 || ''})`
+                : `下半场 求${half2Result.home} : ${half2Result.away}监(${game.time2 || ''})`;
 
             contentBlocks.push({
                 "object": "block",
@@ -641,15 +641,15 @@ function collectDataForNotion() {
         }
 
         if (half1Result.valid || half2Result.valid) {
-            const roundSmallScoreMain = half1Result.main + half2Result.main;
-            const roundSmallScoreSub = half1Result.sub + half2Result.sub;
+            const roundSmallScoreHome = half1Result.home + half2Result.home;
+            const roundSmallScoreAway = half1Result.away + half2Result.away;
             contentBlocks.push({
                 "object": "block",
                 "type": "paragraph",
                 "paragraph": {
                     "rich_text": [{
                         "type": "text",
-                        "text": { "content": `${roundSmallScoreMain} : ${roundSmallScoreSub}` }
+                        "text": { "content": `${roundSmallScoreHome} : ${roundSmallScoreAway}` }
                     }]
                 }
             });
@@ -671,7 +671,7 @@ function collectDataForNotion() {
             "rich_text": [
                 { "type": "text", 
                     "text": { "content": 
-                        `大分 ${bigScoreMain} : ${bigScoreSub}，小分 ${smallScoreMain} : ${smallScoreSub}` 
+                        `大分 ${bigScoreHome} : ${bigScoreAway}，小分 ${smallScoreHome} : ${smallScoreAway}` 
                     } 
                 },
             ]
@@ -747,25 +747,25 @@ function handleChangeDatabase(e) {
 }
 
 function handleNextStep() {
-    const mainTeam = elements.mainTeamSelect.value;
-    const subTeam = elements.subTeamSelect.value;
+    const homeTeam = elements.homeTeamSelect.value;
+    const awayTeam = elements.awayTeamSelect.value;
     const matchMode = elements.matchModeSelect.querySelector('input:checked').value;
 
-    if (!mainTeam || !subTeam) {
+    if (!homeTeam || !awayTeam) {
         alert('请选择队伍');
         return;
     }
 
-    STATE.mainTeam = mainTeam;
-    STATE.subTeam = subTeam;
+    STATE.homeTeam = homeTeam;
+    STATE.awayTeam = awayTeam;
     STATE.matchMode = matchMode;
 
     STATE.homeLineup = '';
     STATE.guestLineup = '';
     elements.homeLineupInput.value = '';
     elements.guestLineupInput.value = '';
-    elements.homeLineupLabel.textContent = `${mainTeam} 首发名单：`;
-    elements.guestLineupLabel.textContent = `${subTeam} 首发名单：`;
+    elements.homeLineupLabel.textContent = `${homeTeam} 首发名单：`;
+    elements.guestLineupLabel.textContent = `${awayTeam} 首发名单：`;
 
 
     STATE.games = [];
@@ -776,7 +776,7 @@ function handleNextStep() {
 
     elements.inputStage.classList.remove('active-stage');
     elements.outputStage.classList.add('active-stage');
-    elements.matchTitle.textContent = `${mainTeam} vs ${subTeam}`;
+    elements.matchTitle.textContent = `${homeTeam} vs ${awayTeam}`;
 
     render();
 }
@@ -937,23 +937,23 @@ function handleRestoreState() {
     if (savedData) {
         STATE = JSON.parse(savedData);
 
-        elements.mainTeamSelect.value = STATE.mainTeam;
-        elements.subTeamSelect.value = STATE.subTeam;
+        elements.homeTeamSelect.value = STATE.homeTeam;
+        elements.awayTeamSelect.value = STATE.awayTeam;
         const matchModeRadio = elements.matchModeSelect.querySelector(`input[value="${STATE.matchMode}"]`);
         if (matchModeRadio) matchModeRadio.checked = true;
 
         if (elements.homeLineupInput) {
             elements.homeLineupInput.value = STATE.homeLineup || '';
-            elements.homeLineupLabel.textContent = `${STATE.mainTeam || '主队'} 首发名单：`;
+            elements.homeLineupLabel.textContent = `${STATE.homeTeam || '主队'} 首发名单：`;
         }
         if (elements.guestLineupInput) {
             elements.guestLineupInput.value = STATE.guestLineup || '';
-            elements.guestLineupLabel.textContent = `${STATE.subTeam || '客队'} 首发名单：`;
+            elements.guestLineupLabel.textContent = `${STATE.awayTeam || '客队'} 首发名单：`;
         }
 
         elements.inputStage.classList.remove('active-stage');
         elements.outputStage.classList.add('active-stage');
-        elements.matchTitle.textContent = `${STATE.mainTeam} vs ${STATE.subTeam}`;
+        elements.matchTitle.textContent = `${STATE.homeTeam} vs ${STATE.awayTeam}`;
         
         render();
         
@@ -990,7 +990,7 @@ function handleOpenOBSWindow() {
                 
                 .watermark {
                   position: absolute;
-                  font-family: var(--font-main);
+                  font-family: var(--font-home);
                   color: rgba(255, 255, 255, 0.15);
                   font-size: 12px;
                   transform: rotate(45deg);
@@ -1237,13 +1237,13 @@ function handleBackToChoice() {
     elements.queryResultContainer.innerHTML = '';
     if(elements.queryTeamSelect) elements.queryTeamSelect.value = '';
 
-    STATE.mainTeam = '';
-    STATE.subTeam = '';
+    STATE.homeTeam = '';
+    STATE.awayTeam = '';
     STATE.games = [];
     STATE.homeLineup = '';
     STATE.guestLineup = '';
-    elements.mainTeamSelect.value = '';
-    elements.subTeamSelect.value = '';
+    elements.homeTeamSelect.value = '';
+    elements.awayTeamSelect.value = '';
     elements.homeLineupInput.value = '';
     elements.guestLineupInput.value = '';
     elements.matchTitle.textContent = '';
@@ -1270,12 +1270,12 @@ function showDatabaseError(message) {
  * @returns {string} - HTML字符串
  */
 function generateConfirmationHTML() {
-    const { mainTeam, subTeam, games, homeLineup, guestLineup} = STATE;
-    let html = `<h3>${mainTeam} vs ${subTeam}</h3>`;
+    const { homeTeam, awayTeam, games, homeLineup, guestLineup} = STATE;
+    let html = `<h3>${homeTeam} vs ${awayTeam}</h3>`;
 
     html += `<div class="lineup-confirmation" style="margin-bottom: 20px;">
-                <p><strong>${mainTeam}首发：</strong><br>${homeLineup.replace(/\n/g, '<br>')}</p>
-                <p><strong>${subTeam}首发：</strong><br>${guestLineup.replace(/\n/g, '<br>')}</p>
+                <p><strong>${homeTeam}首发：</strong><br>${homeLineup.replace(/\n/g, '<br>')}</p>
+                <p><strong>${awayTeam}首发：</strong><br>${guestLineup.replace(/\n/g, '<br>')}</p>
              </div>`;
 
     const RESULT_TEXT_MAP = {
@@ -1288,51 +1288,51 @@ function generateConfirmationHTML() {
 
         html += `<h4>${game.id.toUpperCase()}</h4>`;
         
-        let gameScoreMain = 0;
-        let gameScoreSub = 0;
+        let gameScoreHome = 0;
+        let gameScoreAway = 0;
 
         // 上半
         if (game.role1 && game.result1) {
-            const mainRole = game.role1;
-            const subRole = mainRole === ROLES.hunter ? ROLES.survivor : ROLES.hunter;
-            const resultText = RESULT_TEXT_MAP[mainRole === ROLES.hunter ? 'hunter' : 'survivor'][game.result1];
+            const homeRole = game.role1;
+            const awayRole = homeRole === ROLES.hunter ? ROLES.survivor : ROLES.hunter;
+            const resultText = RESULT_TEXT_MAP[homeRole === ROLES.hunter ? 'hunter' : 'survivor'][game.result1];
             const timeText = game.id === 'tiebreaker' && game.time1 ? `，对局时长 ${game.time1} 秒` : '';
-            html += `<p>上半：${mainTeam}的<strong>${mainRole}</strong> vs ${subTeam}的<strong>${subRole}</strong>，结果为<strong>${resultText}</strong>${timeText}。</p>`;
+            html += `<p>上半：${homeTeam}的<strong>${homeRole}</strong> vs ${awayTeam}的<strong>${awayRole}</strong>，结果为<strong>${resultText}</strong>${timeText}。</p>`;
             
             const half1Scores = getHalfScores(game, 1);
-            gameScoreMain += half1Scores.main;
-            gameScoreSub += half1Scores.sub;
+            gameScoreHome += half1Scores.home;
+            gameScoreAway += half1Scores.away;
         }
 
         // 下半
         if (game.role2 && game.result2) {
-            const mainRole = game.role2;
-            const subRole = mainRole === ROLES.hunter ? ROLES.survivor : ROLES.hunter;
-            const resultText = RESULT_TEXT_MAP[mainRole === ROLES.hunter ? 'hunter' : 'survivor'][game.result2];
+            const homeRole = game.role2;
+            const awayRole = homeRole === ROLES.hunter ? ROLES.survivor : ROLES.hunter;
+            const resultText = RESULT_TEXT_MAP[homeRole === ROLES.hunter ? 'hunter' : 'survivor'][game.result2];
             const timeText = game.id === 'tiebreaker' && game.time2 ? `，对局时长 ${game.time2} 秒` : '';
-            html += `<p>下半：${mainTeam}的<strong>${mainRole}</strong> vs ${subTeam}的<strong>${subRole}</strong>，结果为<strong>${resultText}</strong>${timeText}。</p>`;
+            html += `<p>下半：${homeTeam}的<strong>${homeRole}</strong> vs ${awayTeam}的<strong>${awayRole}</strong>，结果为<strong>${resultText}</strong>${timeText}。</p>`;
 
             const half2Scores = getHalfScores(game, 2);
-            gameScoreMain += half2Scores.main;
-            gameScoreSub += half2Scores.sub;
+            gameScoreHome += half2Scores.home;
+            gameScoreAway += half2Scores.away;
         }
 
-        html += `<p>本轮比分：<strong>${gameScoreMain} : ${gameScoreSub}</strong></p>`;
+        html += `<p>本轮比分：<strong>${gameScoreHome} : ${gameScoreAway}</strong></p>`;
     });
 
     // 最终总结
-    const { bigScoreMain, bigScoreSub, smallScoreMain, smallScoreSub } = calculateScores();
+    const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway } = calculateScores();
     let winnerText = '';
-    if (bigScoreMain > bigScoreSub || (bigScoreMain === bigScoreSub && smallScoreMain > smallScoreSub)) {
-        winnerText = `<strong>${mainTeam}</strong> 取得比赛的胜利。`;
-    } else if (bigScoreSub > bigScoreMain || (bigScoreSub === bigScoreMain && smallScoreSub > smallScoreMain)) {
-        winnerText = `<strong>${subTeam}</strong> 取得比赛的胜利。`;
+    if (bigScoreHome > bigScoreAway || (bigScoreHome === bigScoreAway && smallScoreHome > smallScoreAway)) {
+        winnerText = `<strong>${homeTeam}</strong> 取得比赛的胜利。`;
+    } else if (bigScoreAway > bigScoreHome || (bigScoreAway === bigScoreHome && smallScoreAway > smallScoreHome)) {
+        winnerText = `<strong>${awayTeam}</strong> 取得比赛的胜利。`;
     } else {
         winnerText = '请人工核对加赛信息。';
     }
 
     html += `<div class="final-summary">
-        <p>比赛结束，大分 <strong>${bigScoreMain} : ${bigScoreSub}</strong>，小分 <strong>${smallScoreMain} : ${smallScoreSub}</strong>，${winnerText}</p>
+        <p>比赛结束，大分 <strong>${bigScoreHome} : ${bigScoreAway}</strong>，小分 <strong>${smallScoreHome} : ${smallScoreAway}</strong>，${winnerText}</p>
     </div>`;
 
     return html;

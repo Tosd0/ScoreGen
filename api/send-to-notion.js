@@ -23,11 +23,9 @@ export default async function handler(req, res) {
     const token = authorizationHeader.replace('Bearer ', '');
     const claims = await clerk.verifyToken(token);
     const userId = claims.sub;
-
     const user = await clerk.users.getUser(userId);
 
     const { properties, children } = req.body;
-
     const submitterName = user.username || userId;
 
     const propertiesWithUser = {
@@ -40,13 +38,93 @@ export default async function handler(req, res) {
         }
     };
 
-    await notion.pages.create({
-      parent: { database_id: databaseId },
-      properties: propertiesWithUser,
-      children: children,
+    const homeTeam = properties["主场"]?.select?.name;
+    const awayTeam = properties["客场"]?.select?.name;
+
+    if (!homeTeam || !awayTeam) {
+        return res.status(400).json({ message: "缺少主队或客队信息" });
+    }
+
+    const response = await notion.databases.query({
+        database_id: databaseId,
+        filter: {
+            "and": [
+                {
+                    "property": "主场",
+                    "select": {
+                        "equals": homeTeam
+                    }
+                },
+                {
+                    "property": "客场",
+                    "select": {
+                        "equals": awayTeam
+                    }
+                }
+            ]
+        }
     });
 
-    res.status(201).json({ message: `用户 ${submitterName} 的赛果已成功记录！` });
+    if (response.results.length > 0) {
+      const pageId = response.results[0].id;
+      
+      await notion.pages.update({
+        page_id: pageId,
+        properties: propertiesWithUser,
+      });
+
+      const blocksToAppend = [
+        {
+          "object": "block",
+          "type": "divider",
+          "divider": {}
+        },
+        {
+          "object": "block",
+          "type": "paragraph",
+          "paragraph": {
+            "rich_text": [
+              { "type": "text", "text": { "content": `提交人：${submitterName}` } }
+            ]
+          }
+        },
+        {
+          "object": "block",
+          "type": "paragraph",
+          "paragraph": {
+            "rich_text": [
+              { "type": "text", "text": { "content": "提交时间：" } },
+              {
+                "type": "mention",
+                "mention": {
+                  "type": "date",
+                  "date": {
+                    "start": new Date().toISOString()
+                  }
+                }
+              }
+            ]
+          }
+        },
+        ...children 
+      ];
+
+      await notion.blocks.children.append({
+        block_id: pageId,
+        children: blocksToAppend,
+      });
+
+      res.status(200).json({ message: `用户 ${submitterName} 的赛果已成功更新！` });
+
+    } else {
+      await notion.pages.create({
+        parent: { database_id: databaseId },
+        properties: propertiesWithUser,
+        children: children,
+      });
+
+      res.status(201).json({ message: `用户 ${submitterName} 的赛果已成功记录！` });
+    }
 
   } catch (error) {
     console.error("请求失败详情:", error);
