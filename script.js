@@ -71,7 +71,7 @@ let STATE = {
     homeTeam: '',
     awayTeam: '',
     homeLineup: '',
-    guestLineup: '',
+    awayLineup: '',
     matchMode: 'bo5',
     games: [], // { id: 'bo1', role1: '', result1: '', role2: '', result2: '', time1: '', time2: '' }
     databaseId: '',
@@ -95,9 +95,9 @@ const elements = {
     addBoButton: document.getElementById('add-bo'),
     addTiebreakerButton: document.getElementById('add-tiebreaker'),
     homeLineupInput: document.getElementById('home-lineup'),
-    guestLineupInput: document.getElementById('guest-lineup'),
+    awayLineupInput: document.getElementById('away-lineup'),
     homeLineupLabel: document.getElementById('home-lineup-label'),
-    guestLineupLabel: document.getElementById('guest-lineup-label'),
+    awayLineupLabel: document.getElementById('away-lineup-label'),
     // 按钮
     nextButton: document.getElementById('next-button'),
     restoreButton: document.getElementById('restore-button'),
@@ -546,7 +546,7 @@ function getHalfDisplay(game, halfIndex, teamType) {
  * @returns {object} 一个包含 properties 和 children 的对象
  */
 function collectDataForNotion() {
-    const { homeTeam, awayTeam, homeLineup, guestLineup } = STATE;
+    const { homeTeam, awayTeam, homeLineup, awayLineup } = STATE;
     const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway } = calculateScores();
 
     const pageProperties = {
@@ -589,7 +589,7 @@ function collectDataForNotion() {
         "object": "block",
         "type": "paragraph",
         "paragraph": {
-            "rich_text": [{ "type": "text", "text": { "content": guestLineup || '未填写' } }]
+            "rich_text": [{ "type": "text", "text": { "content": awayLineup || '未填写' } }]
         }
     })
     contentBlocks.push({
@@ -726,7 +726,7 @@ function bindEventListeners() {
     if (elements.queryTeamSelect) elements.queryTeamSelect.addEventListener('change', handleQueryTeamSelect);
     if (elements.backToChoiceButton) elements.backToChoiceButton.addEventListener('click', handleBackToChoice);
     if (elements.homeLineupInput) elements.homeLineupInput.addEventListener('input', handleLineupInputChange);
-    if (elements.guestLineupInput) elements.guestLineupInput.addEventListener('input', handleLineupInputChange);
+    if (elements.awayLineupInput) elements.awayLineupInput.addEventListener('input', handleLineupInputChange);
 
 
 
@@ -761,11 +761,11 @@ function handleNextStep() {
     STATE.matchMode = matchMode;
 
     STATE.homeLineup = '';
-    STATE.guestLineup = '';
+    STATE.awayLineup = '';
     elements.homeLineupInput.value = '';
-    elements.guestLineupInput.value = '';
+    elements.awayLineupInput.value = '';
     elements.homeLineupLabel.textContent = `${homeTeam} 首发名单：`;
-    elements.guestLineupLabel.textContent = `${awayTeam} 首发名单：`;
+    elements.awayLineupLabel.textContent = `${awayTeam} 首发名单：`;
 
 
     STATE.games = [];
@@ -825,7 +825,7 @@ function handleLineupInputChange(e) {
     if (e.target.id === 'home-lineup') {
         STATE.homeLineup = e.target.value;
     } else {
-        STATE.guestLineup = e.target.value;
+        STATE.awayLineup = e.target.value;
     }
     saveStateToLocalStorage();
 }
@@ -894,6 +894,8 @@ async function handleConfirmSend() {
     elements.confirmSendButton.textContent = '发送中...';
 
     const data = collectDataForNotion();
+    data.homeLineup = STATE.homeLineup;
+    data.awayLineup = STATE.awayLineup;
 
     try {
         const token = await clerk.session.getToken();
@@ -946,9 +948,9 @@ function handleRestoreState() {
             elements.homeLineupInput.value = STATE.homeLineup || '';
             elements.homeLineupLabel.textContent = `${STATE.homeTeam || '主队'} 首发名单：`;
         }
-        if (elements.guestLineupInput) {
-            elements.guestLineupInput.value = STATE.guestLineup || '';
-            elements.guestLineupLabel.textContent = `${STATE.awayTeam || '客队'} 首发名单：`;
+        if (elements.awayLineupInput) {
+            elements.awayLineupInput.value = STATE.awayLineup || '';
+            elements.awayLineupLabel.textContent = `${STATE.awayTeam || '客队'} 首发名单：`;
         }
 
         elements.inputStage.classList.remove('active-stage');
@@ -1241,11 +1243,11 @@ function handleBackToChoice() {
     STATE.awayTeam = '';
     STATE.games = [];
     STATE.homeLineup = '';
-    STATE.guestLineup = '';
+    STATE.awayLineup = '';
     elements.homeTeamSelect.value = '';
     elements.awayTeamSelect.value = '';
     elements.homeLineupInput.value = '';
-    elements.guestLineupInput.value = '';
+    elements.awayLineupInput.value = '';
     elements.matchTitle.textContent = '';
     elements.matchesContainer.innerHTML = '';
     render();
@@ -1270,12 +1272,12 @@ function showDatabaseError(message) {
  * @returns {string} - HTML字符串
  */
 function generateConfirmationHTML() {
-    const { homeTeam, awayTeam, games, homeLineup, guestLineup} = STATE;
+    const { homeTeam, awayTeam, games, homeLineup, awayLineup} = STATE;
     let html = `<h3>${homeTeam} vs ${awayTeam}</h3>`;
 
     html += `<div class="lineup-confirmation" style="margin-bottom: 20px;">
                 <p><strong>${homeTeam}首发：</strong><br>${homeLineup.replace(/\n/g, '<br>')}</p>
-                <p><strong>${awayTeam}首发：</strong><br>${guestLineup.replace(/\n/g, '<br>')}</p>
+                <p><strong>${awayTeam}首发：</strong><br>${awayLineup.replace(/\n/g, '<br>')}</p>
              </div>`;
 
     const RESULT_TEXT_MAP = {

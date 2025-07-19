@@ -25,8 +25,10 @@ export default async function handler(req, res) {
     const userId = claims.sub;
     const user = await clerk.users.getUser(userId);
 
-    const { properties, children } = req.body;
+    const { properties, children, homeLineup, guestLineup } = req.body;
     const submitterName = user.username || userId;
+    
+    const lineupsAreEmpty = !homeLineup || !guestLineup;
 
     const propertiesWithUser = {
         ...properties,
@@ -70,55 +72,62 @@ export default async function handler(req, res) {
         properties: propertiesWithUser,
       });
 
-      const blocksToAppend = [
-        {
-          "object": "block",
-          "type": "divider",
-          "divider": {}
-        },
-        {
-          "object": "block",
-          "type": "paragraph",
-          "paragraph": {
-            "rich_text": [
-              { "type": "text", "text": { "content": `追加提交人：${submitterName}` } }
-            ]
-          }
-        },
-        {
-          "object": "block",
-          "type": "paragraph",
-          "paragraph": {
-            "rich_text": [
-              { "type": "text", "text": { "content": "追加提交时间：" } },
-              {
-                "type": "mention",
-                "mention": {
-                  "type": "date",
-                  "date": {
-                    "start": new Date().toISOString()
-                  }
-                }
+      if (!lineupsAreEmpty) {
+          const blocksToAppend = [
+            {
+              "object": "block",
+              "type": "divider",
+              "divider": {}
+            },
+            {
+              "object": "block",
+              "type": "paragraph",
+              "paragraph": {
+                "rich_text": [
+                  { "type": "text", "text": { "content": `追加提交人：${submitterName}` } }
+                ]
               }
-            ]
-          }
-        },
-        ...children 
-      ];
+            },
+            {
+              "object": "block",
+              "type": "paragraph",
+              "paragraph": {
+                "rich_text": [
+                  { "type": "text", "text": { "content": "追加提交时间：" } },
+                  {
+                    "type": "mention",
+                    "mention": {
+                      "type": "date",
+                      "date": {
+                        "start": new Date().toISOString()
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            ...children 
+          ];
 
-      await notion.blocks.children.append({
-        block_id: pageId,
-        children: blocksToAppend,
-      });
+          await notion.blocks.children.append({
+            block_id: pageId,
+            children: blocksToAppend,
+          });
+      }
 
       res.status(200).json({ message: `用户 ${submitterName} 的赛果已成功更新！` });
 
     } else {
-      await notion.pages.create({
+      const pageData = {
         parent: { database_id: databaseId },
         properties: propertiesWithUser,
-        children: children,
-      });
+      };
+
+      if (!lineupsAreEmpty) {
+        pageData.children = children;
+      }
+      
+      await notion.pages.create(pageData);
 
       res.status(201).json({ message: `用户 ${submitterName} 的赛果已成功记录！` });
     }
