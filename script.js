@@ -555,7 +555,7 @@ function collectDataForNotion() {
         },
         "主场": { "select": { "name": homeTeam } },
         "客场": { "select": { "name": awayTeam } },
-        "比赛状态": { "status": { "name": "已结束" } },
+        "比赛状态": { "status": { "name": "進行中" } },
         "日期": { "date": { "start": new Date().toISOString().split('T')[0] } },
         "主队小分": { "number": smallScoreHome },
         "客队小分": { "number": smallScoreAway },
