@@ -5,7 +5,6 @@ const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const clerk = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
 async function verifyAuth(token) {
-  // First try to verify as Clerk token
   try {
     const claims = await clerk.verifyToken(token);
     const userId = claims.sub;
@@ -17,7 +16,6 @@ async function verifyAuth(token) {
       userId: userId
     };
   } catch (clerkError) {
-    // If Clerk verification fails, try token verification
     try {
       const validTokensData = process.env.VALID_TOKENS;
       if (validTokensData) {
@@ -25,7 +23,6 @@ async function verifyAuth(token) {
         const tokenInfo = validTokens[token];
         
         if (tokenInfo) {
-          // Check if token is expired
           if (tokenInfo.expires && new Date() > new Date(tokenInfo.expires)) {
             throw new Error('Token expired');
           }
@@ -39,10 +36,8 @@ async function verifyAuth(token) {
         }
       }
     } catch (tokenError) {
-      // Token verification also failed
     }
     
-    // Both verification methods failed
     throw new Error('Invalid authentication token');
   }
 }
@@ -66,11 +61,9 @@ export default async function handler(req, res) {
     const token = authorizationHeader.replace('Bearer ', '');
     const authResult = await verifyAuth(token);
 
-    const { properties, children, homeLineup, guestLineup } = req.body;
+    const { properties, children } = req.body;
     const submitterName = authResult.username;
     
-    const lineupsAreEmpty = !homeLineup || !guestLineup;
-
     const propertiesWithUser = {
         ...properties,
         "上报人": {
@@ -113,62 +106,55 @@ export default async function handler(req, res) {
         properties: propertiesWithUser,
       });
 
-      if (!lineupsAreEmpty) {
-          const blocksToAppend = [
-            {
-              "object": "block",
-              "type": "divider",
-              "divider": {}
-            },
-            {
-              "object": "block",
-              "type": "paragraph",
-              "paragraph": {
-                "rich_text": [
-                  { "type": "text", "text": { "content": `追加提交人：${submitterName}` } }
-                ]
-              }
-            },
-            {
-              "object": "block",
-              "type": "paragraph",
-              "paragraph": {
-                "rich_text": [
-                  { "type": "text", "text": { "content": "追加提交时间：" } },
-                  {
-                    "type": "mention",
-                    "mention": {
-                      "type": "date",
-                      "date": {
-                        "start": new Date().toISOString()
-                      }
-                    }
+      const blocksToAppend = [
+        {
+          "object": "block",
+          "type": "divider",
+          "divider": {}
+        },
+        {
+          "object": "block",
+          "type": "paragraph",
+          "paragraph": {
+            "rich_text": [
+              { "type": "text", "text": { "content": `追加提交人：${submitterName}` } }
+            ]
+          }
+        },
+        {
+          "object": "block",
+          "type": "paragraph",
+          "paragraph": {
+            "rich_text": [
+              { "type": "text", "text": { "content": "追加提交时间：" } },
+              {
+                "type": "mention",
+                "mention": {
+                  "type": "date",
+                  "date": {
+                    "start": new Date().toISOString()
                   }
-                ]
+                }
               }
-            },
-            ...children 
-          ];
+            ]
+          }
+        },
+        ...children 
+      ];
 
-          await notion.blocks.children.append({
-            block_id: pageId,
-            children: blocksToAppend,
-          });
-      }
+      await notion.blocks.children.append({
+        block_id: pageId,
+        children: blocksToAppend,
+      });
 
       res.status(200).json({ message: `用户 ${submitterName} 的赛果已成功更新！` });
 
     } else {
-      const pageData = {
+      await notion.pages.create({
         parent: { database_id: databaseId },
         properties: propertiesWithUser,
-      };
-
-      if (!lineupsAreEmpty) {
-        pageData.children = children;
-      }
-      
-      await notion.pages.create(pageData);
+        children: children,
+      });
 
       res.status(201).json({ message: `用户 ${submitterName} 的赛果已成功记录！` });
     }
