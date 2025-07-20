@@ -1261,13 +1261,43 @@ function createOBSWatermark(user) {
     obsWindow.document.body.appendChild(container);
 }
 
+async function handleLogout(e) {
+    if (e) e.preventDefault();
+    
+    console.log("正在登出...");
+
+    // 清除令牌用户状态
+    tokenUser = null;
+    localStorage.removeItem('tokenUser');
+    
+    // 清除数据库ID
+    localStorage.removeItem('notionDatabaseId');
+
+    // 如果是Clerk用户，执行登出
+    if (clerk && clerk.user) {
+        await clerk.signOut();
+    }
+
+    // 刷新页面
+    window.location.reload();
+}
+
 function updateGreeting(user) {
-    if (!elements.greetingMessage || !elements.dbGreetingMessage || !elements.choiceGreetingMessage) return;
+    const greetingContainers = [
+        elements.greetingMessage,
+        elements.dbGreetingMessage,
+        elements.choiceGreetingMessage
+    ];
 
     if (!user) {
-        elements.greetingMessage.textContent = '';
-        elements.dbGreetingMessage.textContent = '';
-        elements.choiceGreetingMessage.textContent = '';
+        greetingContainers.forEach(container => {
+            if (container) {
+                const textEl = container.querySelector('.greeting-text');
+                const linkContainer = container.querySelector('.logout-link-container');
+                if (textEl) textEl.textContent = '';
+                if (linkContainer) linkContainer.style.display = 'none';
+            }
+        });
         return;
     }
 
@@ -1287,10 +1317,21 @@ function updateGreeting(user) {
 
     const username = user.username || user.id;
     const fullGreeting = `${greetingText}，${username}`;
-    
-    elements.greetingMessage.textContent = fullGreeting;
-    elements.dbGreetingMessage.textContent = fullGreeting;
-    elements.choiceGreetingMessage.textContent = fullGreeting;
+
+    greetingContainers.forEach(container => {
+        if (container) {
+            const textEl = container.querySelector('.greeting-text');
+            const linkContainer = container.querySelector('.logout-link-container');
+            const logoutLink = container.querySelector('.logout-link');
+
+            if (textEl) textEl.textContent = fullGreeting;
+            if (linkContainer) linkContainer.style.display = 'inline';
+            if (logoutLink) {
+                logoutLink.removeEventListener('click', handleLogout); // 避免重复绑定
+                logoutLink.addEventListener('click', handleLogout);
+            }
+        }
+    });
     
     createWatermark(user);
 }
