@@ -4,6 +4,36 @@ import { Clerk } from '@clerk/clerk-sdk-node';
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const clerk = new Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
 
+async function verifyAuth(token) {
+  // First try to verify as Clerk token
+  try {
+    await clerk.verifyToken(token);
+    return { type: 'clerk', valid: true };
+  } catch (clerkError) {
+    // If Clerk verification fails, try token verification
+    try {
+      const validTokensData = process.env.VALID_TOKENS;
+      if (validTokensData) {
+        const validTokens = JSON.parse(validTokensData);
+        const tokenInfo = validTokens[token];
+        
+        if (tokenInfo) {
+          // Check if token is expired
+          if (tokenInfo.expires && new Date() > new Date(tokenInfo.expires)) {
+            throw new Error('Token expired');
+          }
+          return { type: 'token', valid: true, tokenInfo };
+        }
+      }
+    } catch (tokenError) {
+      // Token verification also failed
+    }
+    
+    // Both verification methods failed
+    throw new Error('Invalid authentication token');
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method Not Allowed' });
@@ -21,7 +51,7 @@ export default async function handler(req, res) {
 
   try {
     const token = authorizationHeader.replace('Bearer ', '');
-    await clerk.verifyToken(token);
+    await verifyAuth(token);
 
     const database = await notion.databases.retrieve({
       database_id: databaseId

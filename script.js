@@ -109,6 +109,14 @@ const elements = {
     loginContainer: document.getElementById('login-container'),
     clerkSigninComponent: document.getElementById('clerk-signin'),
     userButtonComponent: document.getElementById('user-button'),
+    // token login
+    accountLoginTab: document.getElementById('account-login-tab'),
+    tokenLoginTab: document.getElementById('token-login-tab'),
+    accountLoginPanel: document.getElementById('account-login-panel'),
+    tokenLoginPanel: document.getElementById('token-login-panel'),
+    tokenInput: document.getElementById('token-input'),
+    tokenLoginButton: document.getElementById('token-login-button'),
+    tokenError: document.getElementById('token-error'),
     greetingMessage: document.getElementById('greeting-message'),
     dbGreetingMessage: document.getElementById('db-greeting-message'),
     choiceGreetingMessage: document.getElementById('choice-greeting-message'),
@@ -139,6 +147,9 @@ const elements = {
 
 // Clerk initialization
 let clerk;
+
+// Token authentication state
+let tokenUser = null;
 async function startClerk() {
     clerk = window.Clerk;
     if (!clerk) {
@@ -149,8 +160,21 @@ async function startClerk() {
     await clerk.load();
     console.log("Clerk 核心加载完成！");
 
+    // Check for stored token user on page load
+    const storedTokenUser = localStorage.getItem('tokenUser');
+    if (storedTokenUser) {
+        try {
+            tokenUser = JSON.parse(storedTokenUser);
+            console.log("恢复令牌用户状态:", tokenUser);
+        } catch (error) {
+            console.error("恢复令牌用户状态失败:", error);
+            localStorage.removeItem('tokenUser');
+        }
+    }
+
     const updateUI = () => {
-        if (clerk.user) {            
+        const currentUser = getCurrentUser();
+        if (currentUser) {            
             const savedDatabaseId = localStorage.getItem('notionDatabaseId');
             if (savedDatabaseId) {
                 STATE.databaseId = savedDatabaseId;
@@ -176,15 +200,25 @@ async function startClerk() {
                 showStage('database-id-container');
             }
             
-            clerk.mountUserButton(elements.userButtonComponent);
-            updateGreeting(clerk.user);
-            if (!isAppInitialized) {
-                initializeApp();
+            // Mount user button only for Clerk users
+            if (clerk && clerk.user) {
+                clerk.mountUserButton(elements.userButtonComponent);
+            } else {
+                // For token users, clear the user button area
+                elements.userButtonComponent.innerHTML = '';
             }
+            updateGreeting(currentUser);
         } else {
             showStage('login-container');
-            clerk.mountSignIn(elements.clerkSigninComponent);
+            // 强制隐藏两个面板，只显示选择按钮
+            elements.accountLoginPanel.style.display = 'none';
+            elements.tokenLoginPanel.style.display = 'none';
             updateGreeting(null);
+        }
+
+        // 确保事件监听器总是在首次UI更新时被绑定
+        if (!isAppInitialized) {
+            initializeApp();
         }
     };
 
@@ -255,11 +289,11 @@ function showAppContainer() {
  */
 async function verifyDatabaseId(databaseId) {
     try {
-        if (!clerk.user) {
+        if (!getCurrentUser()) {
             return false;
         }
 
-        const token = await clerk.session.getToken();
+        const token = await getAuthToken();
         
         // 查询数据库以获取标题
         const response = await fetch(`/api/verify-database?databaseId=${databaseId}`, {
@@ -728,8 +762,146 @@ function bindEventListeners() {
     if (elements.homeLineupInput) elements.homeLineupInput.addEventListener('input', handleLineupInputChange);
     if (elements.awayLineupInput) elements.awayLineupInput.addEventListener('input', handleLineupInputChange);
 
+    // Token login event listeners
+    if (elements.accountLoginTab) elements.accountLoginTab.addEventListener('click', showAccountLogin);
+    if (elements.tokenLoginTab) elements.tokenLoginTab.addEventListener('click', showTokenLogin);
+    if (elements.tokenLoginButton) elements.tokenLoginButton.addEventListener('click', handleTokenLogin);
+    if (elements.tokenInput) {
+        elements.tokenInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleTokenLogin();
+            }
+        });
+    }
 
+}
 
+// Token login functions
+function showAccountLogin() {
+    elements.accountLoginTab.className = 'btn btn-primary';
+    elements.tokenLoginTab.className = 'btn btn-secondary';
+    elements.accountLoginPanel.style.display = 'block';
+    elements.tokenLoginPanel.style.display = 'none';
+    
+    // 只有在需要时才挂载Clerk组件，避免重复
+    if (clerk && elements.clerkSigninComponent && !elements.clerkSigninComponent.hasChildNodes()) {
+        clerk.mountSignIn(elements.clerkSigninComponent);
+    }
+    hideTokenError();
+}
+
+function showTokenLogin() {
+    elements.accountLoginTab.className = 'btn btn-secondary';
+    elements.tokenLoginTab.className = 'btn btn-primary';
+    elements.accountLoginPanel.style.display = 'none';
+    elements.tokenLoginPanel.style.display = 'block';
+}
+
+function hideTokenError() {
+    if (elements.tokenError) {
+        elements.tokenError.style.display = 'none';
+        elements.tokenError.textContent = '';
+    }
+}
+
+function showTokenError(message) {
+    if (elements.tokenError) {
+        elements.tokenError.textContent = message;
+        elements.tokenError.style.display = 'block';
+    }
+}
+
+async function handleTokenLogin() {
+    const token = elements.tokenInput ? elements.tokenInput.value.trim() : '';
+    
+    if (!token) {
+        showTokenError('请输入访问令牌');
+        return;
+    }
+
+    hideTokenError();
+    elements.tokenLoginButton.disabled = true;
+    elements.tokenLoginButton.textContent = '验证中...';
+
+    try {
+        const response = await fetch('/api/verify-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || '令牌验证失败');
+        }
+
+        // 保存令牌用户信息
+        tokenUser = data.user;
+        tokenUser._isTokenUser = true;
+        tokenUser._token = token;
+        
+        // Persist token user to localStorage
+        localStorage.setItem('tokenUser', JSON.stringify(tokenUser));
+        
+        console.log('令牌登录成功:', tokenUser);
+        
+        // 更新问候语
+        updateGreeting(tokenUser);
+        
+        // 检查是否已有数据库ID
+        const savedDatabaseId = localStorage.getItem('notionDatabaseId');
+        if (savedDatabaseId) {
+            STATE.databaseId = savedDatabaseId;
+            try {
+                const isValid = await verifyDatabaseId(savedDatabaseId);
+                if (isValid) {
+                    showStage('choice-stage');
+                } else {
+                    showStage('database-id-container');
+                }
+            } catch (error) {
+                console.error('Database verification error:', error);
+                showStage('database-id-container');
+            }
+        } else {
+            showStage('database-id-container');
+        }
+        
+        // 初始化应用（如果尚未初始化）
+        if (!isAppInitialized) {
+            initializeApp();
+        }
+
+    } catch (error) {
+        console.error('Token login error:', error);
+        showTokenError(error.message || '令牌验证失败');
+    } finally {
+        elements.tokenLoginButton.disabled = false;
+        elements.tokenLoginButton.textContent = '验证令牌并登录';
+    }
+}
+
+function getCurrentUser() {
+    if (tokenUser) {
+        return tokenUser;
+    }
+    if (clerk && clerk.user) {
+        return clerk.user;
+    }
+    return null;
+}
+
+async function getAuthToken() {
+    if (tokenUser && tokenUser._token) {
+        return tokenUser._token;
+    }
+    if (clerk && clerk.session) {
+        return await clerk.session.getToken();
+    }
+    throw new Error('未找到有效的认证信息');
 }
 
 function handleChangeDatabase(e) {
@@ -880,7 +1052,7 @@ function handleCancelSend() {
  * 执行发送逻辑
  */
 async function handleConfirmSend() {
-    if (!clerk.user) {
+    if (!getCurrentUser()) {
         alert('请先登录。');
         return;
     }
@@ -898,7 +1070,7 @@ async function handleConfirmSend() {
     data.awayLineup = STATE.awayLineup;
 
     try {
-        const token = await clerk.session.getToken();
+        const token = await getAuthToken();
 
         const response = await fetch('/api/send-to-notion', {
             method: 'POST',
@@ -1010,12 +1182,14 @@ function handleOpenOBSWindow() {
         obsWindow.document.close();
         setTimeout(() => {
             updateOBSWindow();
-            if (clerk && clerk.user) {
-                createOBSWatermark(clerk.user);
+            const currentUser = getCurrentUser();
+            if (currentUser) {
+                createOBSWatermark(currentUser);
                 
                 obsWindow.addEventListener('resize', () => {
-                    if (clerk && clerk.user) {
-                        createOBSWatermark(clerk.user);
+                    const currentUser = getCurrentUser();
+                    if (currentUser) {
+                        createOBSWatermark(currentUser);
                     }
                 });
             }
@@ -1355,12 +1529,12 @@ async function handleGoToQuery() {
 
 
     try {
-        if (!clerk.user) {
+        if (!getCurrentUser()) {
             alert("请先登录！");
             handleBackToInput();
             return;
         }
-        const token = await clerk.session.getToken();
+        const token = await getAuthToken();
         const response = await fetch(`/api/get-teams?databaseId=${STATE.databaseId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1390,7 +1564,7 @@ async function handleQueryTeamSelect(e) {
     elements.queryResultContainer.innerHTML = '<p>查询中...</p>';
 
     try {
-        const token = await clerk.session.getToken();
+        const token = await getAuthToken();
         const response = await fetch(`/api/get-results?databaseId=${STATE.databaseId}&team=${encodeURIComponent(teamName)}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });

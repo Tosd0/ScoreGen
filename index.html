@@ -36,8 +36,28 @@
     <div id="login-container" class="card active-stage" style="text-align: center; max-width: 480px; margin: 80px auto;">
         <div class="card-body">
             <h2 class="card-title">欢迎使用 IVBL 计分板</h2>
-            <p style="color: var(--color-text-muted); margin-bottom: 30px;">请先登录以继续操作</p>
-            <div id="clerk-signin"></div>
+            <p style="color: var(--color-text-muted); margin-bottom: 30px;">请选择登录方式</p>
+            
+            <div id="login-tabs" style="margin-bottom: 20px;">
+                <button id="account-login-tab" class="btn btn-secondary" style="margin-right: 10px;">账户登录</button>
+                <button id="token-login-tab" class="btn btn-secondary">令牌登录</button>
+            </div>
+            
+            <div id="account-login-panel">
+                <div id="clerk-signin"></div>
+            </div>
+            
+            <div id="token-login-panel" style="display: none;">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <input type="text" id="token-input" class="form-control" 
+                           placeholder="请输入访问令牌..." 
+                           style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #ddd; font-family: monospace;">
+                    <p id="token-error" style="color: red; display: none; margin-top: 5px; font-size: 14px;"></p>
+                </div>
+                <button id="token-login-button" class="btn btn-primary" style="width: 100%;">
+                    验证令牌并登录
+                </button>
+            </div>
         </div>
     </div>
 
