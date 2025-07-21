@@ -336,6 +336,61 @@ function initializeApp() {
 
 // --- 3. UI RENDERING FUNCTIONS ---
 
+function generateSummaryText(game, half) {
+    const role = game[`role${half}`];
+    const result = game[`result${half}`];
+
+    if (!role || result === '' || result === null || result === undefined) {
+        return '';
+    }
+
+    const homeTeam = STATE.homeTeam;
+    const awayTeam = STATE.awayTeam;
+
+    const homeTeamRole = game[`role${half}`];
+
+    const resultTextMapping = {
+        '4': '四跑（零杀）',
+        '3': '三跑（一杀）',
+        '2': '平局',
+        '1': '三抓（一跑）',
+        '0': '四抓（零跑）'
+    };
+    const resultText = resultTextMapping[result];
+    if (!resultText) return '';
+
+    const scores = getHalfScores(game, half);
+    if (!scores.valid) return '';
+
+    let survivorTeamName, survivorTeamScore, hunterTeamName, hunterTeamScore;
+
+    if (homeTeamRole === ROLES.survivor) {
+        survivorTeamName = homeTeam;
+        survivorTeamScore = scores.home;
+        hunterTeamName = awayTeam;
+        hunterTeamScore = scores.away;
+    } else {
+        survivorTeamName = awayTeam;
+        survivorTeamScore = scores.away;
+        hunterTeamName = homeTeam;
+        hunterTeamScore = scores.home;
+    }
+
+    return `本场比赛为${survivorTeamName}求生者方对战${hunterTeamName}监管者方，比赛结果为${resultText}，${survivorTeamName}求生者方获得${survivorTeamScore}分小分，${hunterTeamName}监管者方获得${hunterTeamScore}小分。`;
+}
+
+function generateHalfSummaryHTML(game, half) {
+    const summaryText = generateSummaryText(game, half);
+    if (!summaryText) return '';
+
+    return `
+        <div class="summary-container" style="position: relative; margin-top: 10px;">
+            <textarea readonly class="summary-text" data-half="${half}" rows="3" style="width: 100%; resize: vertical; padding: 8px 75px 8px 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; font-size: 13px;">${summaryText}</textarea>
+            <button type="button" class="btn btn-secondary btn-copy" data-half="${half}" style="position: absolute; right: 5px; top: 8px; font-size: 12px; padding: 4px 10px;">复制</button>
+        </div>
+    `;
+}
+
 function render() {
     renderMatchUI();
     renderResultTable();
@@ -385,6 +440,7 @@ function createGameUI(game, isTiebreaker) {
         ).join('') : '';
 
         const timeInputHTML = isTiebreaker ? `<input type="text" class="time-input" placeholder="比赛时间(秒)" data-half="${half}" value="${time || ''}">` : '';
+        const summaryHTML = generateHalfSummaryHTML(game, half);
 
         return `
             <div>
@@ -397,6 +453,7 @@ function createGameUI(game, isTiebreaker) {
                     ${resultOptions}
                 </select>
                 ${timeInputHTML}
+                ${summaryHTML}
             </div>
         `;
     };
@@ -770,6 +827,7 @@ function bindEventListeners() {
         elements.matchesContainer.addEventListener('change', handleGameInputChange);
         elements.matchesContainer.addEventListener('input', handleGameInputChange);
         elements.matchesContainer.addEventListener('focusout', handleInputBlur);
+        elements.matchesContainer.addEventListener('click', handleCopySummary);
     }
     
     if (elements.verifyDatabaseButton) {
@@ -1005,6 +1063,28 @@ function handleGameInputChange(e) {
         game[`time${half}`] = target.value;
         saveStateToLocalStorage();
     }
+}
+
+function handleCopySummary(e) {
+    const target = e.target;
+    if (!target.classList.contains('btn-copy')) return;
+
+    const summaryContainer = target.closest('.summary-container');
+    if (!summaryContainer) return;
+
+    const textarea = summaryContainer.querySelector('.summary-text');
+    if (!textarea) return;
+
+    navigator.clipboard.writeText(textarea.value).then(() => {
+        const originalText = target.textContent;
+        target.textContent = '已复制!';
+        setTimeout(() => {
+            target.textContent = originalText;
+        }, 1500);
+    }).catch(err => {
+        console.error('无法复制文本: ', err);
+        alert('复制失败，请手动复制。');
+    });
 }
 
 function handleLineupInputChange(e) {
