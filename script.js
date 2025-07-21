@@ -100,8 +100,7 @@ const elements = {
     // 按钮
     nextButton: document.getElementById('next-button'),
     restoreButton: document.getElementById('restore-button'),
-    intermissionButton: document.getElementById('toggle-intermission'),
-    matchEndButton: document.getElementById('toggle-match-end'),
+    
     sendToNotionButton: document.getElementById('send-to-notion-button'),
     // login
     loginContainer: document.getElementById('login-container'),
@@ -422,34 +421,22 @@ function updateButtonVisibility() {
 function renderResultTable() {
     const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway, gameDetails } = calculateScores();
 
-    let winningTeam = null;
-    if (STATE.isMatchEnd) {
-        if (bigScoreHome !== bigScoreAway) {
-            winningTeam = bigScoreHome > bigScoreAway ? 'home' : 'away';
-        } else if (smallScoreHome !== smallScoreAway) {
-            winningTeam = smallScoreHome > smallScoreAway ? 'home' : 'away';
-        }
-    }
-
-    const homeHighlight = winningTeam === 'home' ? 'class="highlight"' : '';
-    const awayHighlight = winningTeam === 'away' ? 'class="highlight"' : '';
-
     const headerHTML = `
         <div class="match-header" style="text-align: center; margin-bottom: 10px;">
             <h2 style="margin: 0; font-size: 26px;">
-                <span ${homeHighlight}>${STATE.homeTeam}</span> vs <span ${awayHighlight}>${STATE.awayTeam}</span>
+                <span>${STATE.homeTeam}</span> vs <span>${STATE.awayTeam}</span>
             </h2>
             <div class="big-score" style="font-size: 22px; margin: 2px 0;">大分 ${bigScoreHome}:${bigScoreAway}</div>
             <div class="small-score" style="font-size: 18px; margin: 2px 0;">小分 ${smallScoreHome}:${smallScoreAway}</div>
-            ${STATE.isIntermission ? '<div class="intermission-alert" style="color: #ffeb3b; font-size: 18px;">场间休息中，请耐心等待～</div>' : ''}
+            
         </div>
     `;
 
     const tableHeaders = gameDetails.map(g => `<th colspan="2">${g.label}</th>`).join('');
     const halfHeaders = gameDetails.map(() => `<th>上半</th><th>下半</th>`).join('');
 
-    const homeTeamRow = gameDetails.map(g => `<td ${homeHighlight}>${g.home1}</td><td ${homeHighlight}>${g.home2}</td>`).join('');
-    const awayTeamRow = gameDetails.map(g => `<td ${awayHighlight}>${g.away1}</td><td ${awayHighlight}>${g.away2}</td>`).join('');
+    const homeTeamRow = gameDetails.map(g => `<td>${g.home1}</td><td>${g.home2}</td>`).join('');
+    const awayTeamRow = gameDetails.map(g => `<td>${g.away1}</td><td>${g.away2}</td>`).join('');
 
     elements.resultsContainer.innerHTML = `
         <div style="padding: 0 25px; overflow-x:auto;">
@@ -460,8 +447,8 @@ function renderResultTable() {
                     <tr>${halfHeaders}</tr>
                 </thead>
                 <tbody>
-                    <tr><td ${homeHighlight}>${STATE.homeTeam}</td>${homeTeamRow}</tr>
-                    <tr><td ${awayHighlight}>${STATE.awayTeam}</td>${awayTeamRow}</tr>
+                    <tr><td>${STATE.homeTeam}</td>${homeTeamRow}</tr>
+                    <tr><td>${STATE.awayTeam}</td>${awayTeamRow}</tr>
                 </tbody>
             </table>
             <div style="color: #ffeb3b; font-size: 12px; text-align: center; margin-top: 5px;" class="role-note">H为监管 S为求生</div>
@@ -777,8 +764,7 @@ function bindEventListeners() {
     if (elements.restoreButton) elements.restoreButton.addEventListener('click', handleRestoreState);
     if (elements.addBoButton) elements.addBoButton.addEventListener('click', handleAddBo);
     if (elements.addTiebreakerButton) elements.addTiebreakerButton.addEventListener('click', handleAddTiebreaker);
-    if (elements.intermissionButton) elements.intermissionButton.addEventListener('click', handleToggleIntermission);
-    if (elements.matchEndButton) elements.matchEndButton.addEventListener('click', handleToggleMatchEnd);
+    
     if (elements.sendToNotionButton) elements.sendToNotionButton.addEventListener('click', handleSendToNotion);
     if (elements.matchesContainer) {
         elements.matchesContainer.addEventListener('change', handleGameInputChange);
@@ -1041,26 +1027,12 @@ function handleAddTiebreaker() {
     render();
 }
 
-function handleToggleIntermission() {
-    STATE.isIntermission = !STATE.isIntermission;
-    elements.intermissionButton.textContent = STATE.isIntermission ? '结束场间' : '进入场间';
-    render();
-}
 
-function handleToggleMatchEnd() {
-    STATE.isMatchEnd = !STATE.isMatchEnd;
-    elements.matchEndButton.textContent = STATE.isMatchEnd ? '取消结束' : '比赛结束';
-    render();
-}
 
 /**
  * 显示确认页面
  */
 function handleSendToNotion() {
-    if (!STATE.isMatchEnd) {
-        alert('请先点击“比赛结束”按钮。');
-        return;
-    }
     const summaryHTML = generateConfirmationHTML();
     elements.confirmationSummary.innerHTML = summaryHTML;
 
@@ -1393,7 +1365,23 @@ function showDatabaseError(message) {
  */
 function generateConfirmationHTML() {
     const { homeTeam, awayTeam, games, homeLineup, awayLineup} = STATE;
-    let html = `<h3>${homeTeam} vs ${awayTeam}</h3>`;
+    const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway } = calculateScores();
+
+    let winner = null;
+    if (bigScoreHome > bigScoreAway) {
+        winner = 'home';
+    } else if (bigScoreAway > bigScoreHome) {
+        winner = 'away';
+    } else if (smallScoreHome > smallScoreAway) {
+        winner = 'home';
+    } else if (smallScoreAway > smallScoreHome) {
+        winner = 'away';
+    }
+
+    const homeHighlight = winner === 'home' ? 'style="color: var(--color-accent);"' : '';
+    const awayHighlight = winner === 'away' ? 'style="color: var(--color-accent);"' : '';
+
+    let html = `<h3><span ${homeHighlight}>${homeTeam}</span> vs <span ${awayHighlight}>${awayTeam}</span></h3>`;
 
     html += `<div class="lineup-confirmation" style="margin-bottom: 20px;">
                 <p><strong>${homeTeam}首发：</strong><br>${homeLineup.replace(/\n/g, '<br>')}</p>
@@ -1443,18 +1431,17 @@ function generateConfirmationHTML() {
     });
 
     // 最终总结
-    const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway } = calculateScores();
     let winnerText = '';
-    if (bigScoreHome > bigScoreAway || (bigScoreHome === bigScoreAway && smallScoreHome > smallScoreAway)) {
-        winnerText = `<strong>${homeTeam}</strong> 取得比赛的胜利。`;
-    } else if (bigScoreAway > bigScoreHome || (bigScoreAway === bigScoreHome && smallScoreAway > smallScoreHome)) {
-        winnerText = `<strong>${awayTeam}</strong> 取得比赛的胜利。`;
+    if (winner === 'home') {
+        winnerText = `<strong><span ${homeHighlight}>${homeTeam}</span></strong> 取得比赛的胜利。`;
+    } else if (winner === 'away') {
+        winnerText = `<strong><span ${awayHighlight}>${awayTeam}</span></strong> 取得比赛的胜利。`;
     } else {
         winnerText = '请人工核对加赛信息。';
     }
 
     html += `<div class="final-summary">
-        <p>比赛结束，大分 <strong>${bigScoreHome} : ${bigScoreAway}</strong>，小分 <strong>${smallScoreHome} : ${smallScoreAway}</strong>，${winnerText}</p>
+        <p>大分 <strong>${bigScoreHome} : ${bigScoreAway}</strong>，小分 <strong>${smallScoreHome} : ${smallScoreAway}</strong>，${winnerText}</p>
     </div>`;
 
     return html;
