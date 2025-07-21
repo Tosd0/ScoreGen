@@ -576,12 +576,56 @@ function getHalfDisplay(game, halfIndex, teamType) {
 }
 
 /**
+ * 计算并生成 raw_score 字符串
+ * @returns {string}
+ */
+function calculateRawScore() {
+    let rawScoreString = "";
+
+    STATE.games.forEach(game => {
+        if (!game.role1 || !game.result1 || !game.role2 || !game.result2) {
+            return; // 如果半场数据不完整，则跳过此BO
+        }
+
+        let gameScores = {
+            home: { hunter: 0, survivor: 0 },
+            away: { hunter: 0, survivor: 0 }
+        };
+
+        // 处理上半场
+        const half1Scores = getHalfScores(game, 1);
+        if (game.role1 === ROLES.hunter) { // 主队监管
+            gameScores.home.hunter += half1Scores.home;
+            gameScores.away.survivor += half1Scores.away;
+        } else { // 主队求生
+            gameScores.home.survivor += half1Scores.home;
+            gameScores.away.hunter += half1Scores.away;
+        }
+
+        // 处理下半场
+        const half2Scores = getHalfScores(game, 2);
+        if (game.role2 === ROLES.hunter) { // 主队监管
+            gameScores.home.hunter += half2Scores.home;
+            gameScores.away.survivor += half2Scores.away;
+        } else { // 主队求生
+            gameScores.home.survivor += half2Scores.home;
+            gameScores.away.hunter += half2Scores.away;
+        }
+
+        rawScoreString += `${gameScores.home.hunter}${gameScores.home.survivor}${gameScores.away.hunter}${gameScores.away.survivor}`;
+    });
+
+    return rawScoreString;
+}
+
+/**
  * 收集并直接格式化为 Notion API pages.create 方法所需的 JSON 格式
  * @returns {object} 一个包含 properties 和 children 的对象
  */
 function collectDataForNotion() {
     const { homeTeam, awayTeam, homeLineup, awayLineup } = STATE;
     const { bigScoreHome, bigScoreAway, smallScoreHome, smallScoreAway } = calculateScores();
+    const rawScore = calculateRawScore();
 
     const pageProperties = {
         "标题": {
@@ -595,6 +639,7 @@ function collectDataForNotion() {
         "客队小分": { "number": smallScoreAway },
         "主队大分": { "number": bigScoreHome },
         "客队大分": { "number": bigScoreAway },
+        "raw_score": { "rich_text": [{ "text": { "content": rawScore } }] }
     };
 
     const contentBlocks = [];
