@@ -210,9 +210,11 @@ async function startClerk() {
             updateGreeting(currentUser);
         } else {
             showStage('login-container');
-            // 强制隐藏两个面板，只显示选择按钮
+            // 默认隐藏两个面板，等待用户选择
             elements.accountLoginPanel.style.display = 'none';
             elements.tokenLoginPanel.style.display = 'none';
+            elements.accountLoginTab.className = 'btn btn-secondary';
+            elements.tokenLoginTab.className = 'btn btn-secondary';
             updateGreeting(null);
         }
 
@@ -769,6 +771,20 @@ function collectDataForNotion() {
 
 // --- 5. EVENT HANDLERS ---
 
+function bindLoginEventListeners() {
+    console.log("绑定登录事件监听器...");
+    if (elements.accountLoginTab) elements.accountLoginTab.addEventListener('click', showAccountLogin);
+    if (elements.tokenLoginTab) elements.tokenLoginTab.addEventListener('click', showTokenLogin);
+    if (elements.tokenLoginButton) elements.tokenLoginButton.addEventListener('click', handleTokenLogin);
+    if (elements.tokenInput) {
+        elements.tokenInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleTokenLogin();
+            }
+        });
+    }
+}
+
 function bindEventListeners() {
     console.log("绑定所有事件监听器...");
     Object.entries(elements).forEach(([key, el]) => {
@@ -806,19 +822,6 @@ function bindEventListeners() {
     if (elements.backToChoiceButton) elements.backToChoiceButton.addEventListener('click', handleBackToChoice);
     if (elements.homeLineupInput) elements.homeLineupInput.addEventListener('input', handleLineupInputChange);
     if (elements.awayLineupInput) elements.awayLineupInput.addEventListener('input', handleLineupInputChange);
-
-    // Token login event listeners
-    if (elements.accountLoginTab) elements.accountLoginTab.addEventListener('click', showAccountLogin);
-    if (elements.tokenLoginTab) elements.tokenLoginTab.addEventListener('click', showTokenLogin);
-    if (elements.tokenLoginButton) elements.tokenLoginButton.addEventListener('click', handleTokenLogin);
-    if (elements.tokenInput) {
-        elements.tokenInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                handleTokenLogin();
-            }
-        });
-    }
-
 }
 
 // Token login functions
@@ -829,7 +832,7 @@ function showAccountLogin() {
     elements.tokenLoginPanel.style.display = 'none';
     
     // 只有在需要时才挂载Clerk组件，避免重复
-    if (clerk && elements.clerkSigninComponent && !elements.clerkSigninComponent.hasChildNodes()) {
+    if (clerk && clerk.loaded && elements.clerkSigninComponent && !elements.clerkSigninComponent.hasChildNodes()) {
         clerk.mountSignIn(elements.clerkSigninComponent);
     }
     hideTokenError();
@@ -1717,4 +1720,6 @@ function handleBackToInput() {
     elements.queryTeamSelect.value = '';
 }
 
+// --- 7. INITIALIZATION ---
+bindLoginEventListeners();
 window.addEventListener('load', startClerk);
