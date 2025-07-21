@@ -1,0 +1,29 @@
+script.js:767 绑定登录事件监听器...
+script.js:159 Clerk 核心加载完成！
+script.js:226 Clerk 监听到状态变化，当前用户: user_2ytGnbI8EBSg4VmwmtTGi87iZif
+script.js:339 应用首次初始化...
+script.js:781 绑定所有事件监听器...
+script.js:783  Element not found for: queryContainer
+(anonymous) @ script.js:783
+bindEventListeners @ script.js:782
+initializeApp @ script.js:344
+updateUI @ script.js:221
+(anonymous) @ script.js:227
+e @ clerk.browser.js:5
+addListener @ clerk.browser.js:5
+startClerk @ script.js:225
+script.js:787  Uncaught (in promise) ReferenceError: handleRestoreState is not defined
+    at bindEventListeners (script.js:787:82)
+    at initializeApp (script.js:344:5)
+    at updateUI (script.js:221:13)
+    at script.js:227:9
+    at e (clerk.browser.js:5:40889)
+    at ey.addListener (clerk.browser.js:5:41062)
+    at startClerk (script.js:225:11)
+bindEventListeners @ script.js:787
+initializeApp @ script.js:344
+updateUI @ script.js:221
+(anonymous) @ script.js:227
+e @ clerk.browser.js:5
+addListener @ clerk.browser.js:5
+startClerk @ script.js:225

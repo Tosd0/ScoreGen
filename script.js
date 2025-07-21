@@ -78,7 +78,6 @@ let STATE = {
     databaseTitle: ''
 };
 
-let obsWindow = null;
 let isAppInitialized = false;
 
 // --- 2. DOM ELEMENT REFERENCES ---
@@ -101,7 +100,6 @@ const elements = {
     // 按钮
     nextButton: document.getElementById('next-button'),
     restoreButton: document.getElementById('restore-button'),
-    obsWindowButton: document.getElementById('open-obs-window'),
     intermissionButton: document.getElementById('toggle-intermission'),
     matchEndButton: document.getElementById('toggle-match-end'),
     sendToNotionButton: document.getElementById('send-to-notion-button'),
@@ -325,16 +323,6 @@ async function verifyDatabaseId(databaseId) {
     }
 }
 
-/**
- * 检测当前设备是否为电脑
- * @returns {boolean} 如果是桌面设备，则返回true，否则返回false
- */
-function isDesktopDevice() {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isMobile = /iphone|ipad|ipod|android|blackberry|windows phone|opera mini|silk|mobile safari|iemobile/.test(userAgent);
-    return !isMobile;
-}
-
 // --- 应用初始化函数 ---
 function initializeApp() {
     if (isAppInitialized) return;
@@ -342,10 +330,6 @@ function initializeApp() {
     const optionsHTML = SCHOOLS.map(school => `<option value="${school}">${school}</option>`).join('');
     elements.homeTeamSelect.innerHTML = `<option value="" disabled selected>请选择主场队伍</option>${optionsHTML}`;
     elements.awayTeamSelect.innerHTML = `<option value="" disabled selected>请选择客场队伍</option>${optionsHTML}`;
-
-    if (!isDesktopDevice()) {
-        elements.obsWindowButton.style.display = 'none';
-    }
 
     bindEventListeners();
     isAppInitialized = true;
@@ -356,7 +340,6 @@ function initializeApp() {
 function render() {
     renderMatchUI();
     renderResultTable();
-    updateOBSWindow();
     saveStateToLocalStorage();
 }
 
@@ -796,7 +779,6 @@ function bindEventListeners() {
     if (elements.addTiebreakerButton) elements.addTiebreakerButton.addEventListener('click', handleAddTiebreaker);
     if (elements.intermissionButton) elements.intermissionButton.addEventListener('click', handleToggleIntermission);
     if (elements.matchEndButton) elements.matchEndButton.addEventListener('click', handleToggleMatchEnd);
-    if (elements.obsWindowButton) elements.obsWindowButton.addEventListener('click', handleOpenOBSWindow);
     if (elements.sendToNotionButton) elements.sendToNotionButton.addEventListener('click', handleSendToNotion);
     if (elements.matchesContainer) {
         elements.matchesContainer.addEventListener('change', handleGameInputChange);
@@ -1036,7 +1018,6 @@ function handleGameInputChange(e) {
     } else if (target.classList.contains('time-input')) {
         game[`time${half}`] = target.value;
         saveStateToLocalStorage();
-        updateOBSWindow();
     }
 }
 
@@ -1147,7 +1128,7 @@ async function handleConfirmSend() {
 }
 
 
-// --- 6. DATA PERSISTENCE & OBS WINDOW ---
+// --- 6. DATA PERSISTENCE ---
 
 function saveStateToLocalStorage() {
     localStorage.setItem('matchData', JSON.stringify(STATE));
@@ -1183,129 +1164,6 @@ function handleRestoreState() {
     } else {
         alert('没有找到任何保存的数据。');
     }
-}
-
-function handleOpenOBSWindow() {
-    if (!obsWindow || obsWindow.closed) {
-        obsWindow = window.open("", "obsWindow", "width=800,height=360");
-        obsWindow.document.write(`
-            <!DOCTYPE html><html><head><meta charset="UTF-8"><title>OBS捕获窗口</title><link rel="stylesheet" href="styles.css">
-            <style>
-                html, body { background: transparent; margin: 0; color: #fff; }
-                body { background: url('${BackGroundImageUrl}') no-repeat center center fixed; background-size: cover; }
-                #background-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1; }
-                #obs-results { position: relative; z-index: 2; height: 100vh; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 10px rgba(255,255,255,0.8); }
-                .highlight { color: #ffeb3b !important; text-shadow: 0 0 10px #ffeb3b, 0 0 20px #ffeb3b !important; }
-                
-                /* OBS窗口的水印样式 */
-                .watermark-container {
-                  position: fixed;
-                  top: 0;
-                  left: 0;
-                  width: 100%;
-                  height: 100%;
-                  pointer-events: none;
-                  z-index: 1000;
-                  overflow: hidden;
-                }
-                
-                .watermark {
-                  position: absolute;
-                  font-family: var(--font-home);
-                  color: rgba(255, 255, 255, 0.15);
-                  font-size: 12px;
-                  transform: rotate(45deg);
-                  white-space: nowrap;
-                  user-select: none;
-                  text-align: center;
-                  line-height: 1.5;
-                  display: flex;
-                  flex-direction: column;
-                  gap: 2px;
-                  width: 140px;
-                }
-            </style></head><body><div id="background-overlay"></div><div id="obs-results"></div></body></html>
-        `);
-        obsWindow.document.close();
-        setTimeout(() => {
-            updateOBSWindow();
-            const currentUser = getCurrentUser();
-            if (currentUser) {
-                createOBSWatermark(currentUser);
-                
-                obsWindow.addEventListener('resize', () => {
-                    const currentUser = getCurrentUser();
-                    if (currentUser) {
-                        createOBSWatermark(currentUser);
-                    }
-                });
-            }
-        }, 100);
-    } else {
-        obsWindow.focus();
-    }
-}
-
-function updateOBSWindow() {
-    if (obsWindow && !obsWindow.closed) {
-        const resultsDiv = obsWindow.document.getElementById('obs-results');
-        if (resultsDiv) {
-            resultsDiv.innerHTML = elements.resultsContainer.innerHTML;
-        }
-    }
-}
-
-/**
- * 为OBS窗口创建水印
- * @param {Object} user - 用户信息对象
- */
-function createOBSWatermark(user) {
-    if (!obsWindow || obsWindow.closed || !user) return;
-    
-    const oldWatermark = obsWindow.document.querySelector('.watermark-container');
-    if (oldWatermark) {
-        obsWindow.document.body.removeChild(oldWatermark);
-    }
-    
-    const userId = user.id;
-    const username = user.username || userId;
-    
-    const container = obsWindow.document.createElement('div');
-    container.className = 'watermark-container';
-    
-    const screenWidth = obsWindow.innerWidth;
-    const screenHeight = obsWindow.innerHeight;
-    const spacingY = 140;
-    const spacingX = 130; 
-    
-    for (let y = -screenHeight; y < screenHeight * 2; y += spacingY) {
-        for (let x = -screenWidth; x < screenWidth * 2; x += spacingX) {
-            const watermark = obsWindow.document.createElement('div');
-            watermark.className = 'watermark';
-            
-            const usernameSpan = obsWindow.document.createElement('div');
-            usernameSpan.textContent = username;
-            usernameSpan.style.textAlign = 'center';
-            
-            const userIdSpan = obsWindow.document.createElement('div');
-            userIdSpan.textContent = userId;
-            userIdSpan.style.textAlign = 'center';
-            userIdSpan.style.fontSize = '10px';
-            
-            watermark.appendChild(usernameSpan);
-            watermark.appendChild(userIdSpan);
-            
-            // 随机偏移
-            const randomOffsetY = Math.floor(Math.random() * 80) - 40;
-            const randomOffsetX = Math.floor(Math.random() * 40) - 20;
-            
-            watermark.style.left = `${x + randomOffsetX}px`;
-            watermark.style.top = `${y + randomOffsetY}px`;
-            container.appendChild(watermark);
-        }
-    }
-    
-    obsWindow.document.body.appendChild(container);
 }
 
 async function handleLogout(e) {
