@@ -349,14 +349,29 @@ function generateSummaryText(game, half) {
 
     const homeTeamRole = game[`role${half}`];
 
-    const resultTextMapping = {
-        '4': '四跑（零杀）',
-        '3': '三跑（一杀）',
+    const survivorResultMap = {
+        '4': '四跑（零抓）',
+        '3': '三跑（一抓）',
         '2': '平局',
-        '1': '三抓（一跑）',
-        '0': '四抓（零跑）'
+        '1': '一跑（三抓）',
+        '0': '零跑（四抓）'
     };
-    const resultText = resultTextMapping[result];
+
+    const hunterResultMap = {
+        '4': '四抓（零跑）',
+        '3': '三抓（一跑）',
+        '2': '平局',
+        '1': '一抓（三跑）',
+        '0': '零抓（四跑）'
+    };
+
+    let resultText;
+    if (homeTeamRole === ROLES.survivor) {
+        resultText = survivorResultMap[result];
+    } else if (homeTeamRole === ROLES.hunter) {
+        resultText = hunterResultMap[result];
+    }
+
     if (!resultText) return '';
 
     const scores = getHalfScores(game, half);
@@ -1587,7 +1602,7 @@ async function handleQueryTeamSelect(e) {
         }
 
         const { results } = await response.json();
-        renderQueryResults(results, teamName);
+        renderQueryResults(results);
 
     } catch (error) {
         console.error('获取赛果时出错:', error);
@@ -1601,7 +1616,7 @@ async function handleQueryTeamSelect(e) {
  * @param {Array} results - Notion返回的页面对象数组
  * @param {string} selectedTeam - 当前查询的队伍名
  */
-function renderQueryResults(results, selectedTeam) {
+function renderQueryResults(results) {
     if (results.length === 0) {
         elements.queryResultContainer.innerHTML = '<p>未找到该队伍的比赛记录。</p>';
         return;
@@ -1611,8 +1626,6 @@ function renderQueryResults(results, selectedTeam) {
         const props = page.properties;
         const title = props['标题']?.title[0]?.plain_text || '无标题';
         const date = props['日期']?.date?.start || '无日期';
-        const homeTeam = props['主场']?.select?.name || '';
-        const awayTeam = props['客场']?.select?.name || '';
         
         let resultText = '';
         if (page.children) {
