@@ -545,11 +545,13 @@ function calculateScores() {
         smallScoreHome += half1.home + half2.home;
         smallScoreAway += half1.away + half2.away;
 
-        if (half1.valid && half2.valid) {
-            const totalHome = half1.home + half2.home;
-            const totalAway = half1.away + half2.away;
-            if (totalHome > totalAway) bigScoreHome++;
-            else if (totalAway > totalHome) bigScoreAway++;
+        if (game.id !== 'tiebreaker') {
+            if (half1.valid && half2.valid) {
+                const totalHome = half1.home + half2.home;
+                const totalAway = half1.away + half2.away;
+                if (totalHome > totalAway) bigScoreHome++;
+                else if (totalAway > totalHome) bigScoreAway++;
+            }
         }
 
         gameDetails.push({
