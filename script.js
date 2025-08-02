@@ -234,7 +234,7 @@ async function startClerk() {
 }
 
 /**
- * 页面切换的辅助函数
+ * 统一的页面切换函数
  * @param {string} stageId 要显示的页面的ID
  */
 function showStage(stageId) {
@@ -259,18 +259,17 @@ function showStage(stageId) {
     topLevelStages.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            el.style.display = (id === activeTopLevel) ? 'block' : 'none';
-            if (el.classList.contains('card')) {
-                if (id === activeTopLevel) {
-                    el.classList.add('active-stage');
-                } else {
-                    el.classList.remove('active-stage');
-                }
+            if (id === activeTopLevel) {
+                el.style.display = 'block';
+                el.classList.add('active-stage');
+            } else {
+                el.style.display = 'none';
+                el.classList.remove('active-stage');
             }
         }
     });
 
-    // 现在，处理 app-container 内的子舞台
+    // 处理 app-container 内的子舞台
     if (activeTopLevel === 'app-container') {
         appSubStages.forEach(id => {
             const el = document.getElementById(id);
@@ -284,14 +283,6 @@ function showStage(stageId) {
                 }
             }
         });
-        // 当直接显示 app-container 时，默认显示 input-stage
-        if (stageId === 'app-container') {
-            const inputStage = document.getElementById('input-stage');
-            if (inputStage) {
-                inputStage.style.display = 'block';
-                inputStage.classList.add('active-stage');
-            }
-        }
     }
 }
 
@@ -1042,12 +1033,12 @@ async function checkMatchExists(homeTeam, awayTeam) {
         }
 
         const data = await response.json();
-        return data.exists;
+        return data;
 
     } catch (error) {
         console.error('检查比赛是否存在时出错:', error);
         alert(`检查比赛时出错: ${error.message}`);
-        return false; // 发生错误时假定比赛不存在，以免阻塞用户
+        return { exists: false }; // 发生错误时假定比赛不存在，以免阻塞用户
     }
 }
 
@@ -1065,7 +1056,7 @@ function handleChangeDatabase(e) {
     showDatabaseIdContainer();
 }
 
-async function handleNextStep() {
+function handleNextStep() {
     const homeTeam = elements.homeTeamSelect.value;
     const awayTeam = elements.awayTeamSelect.value;
 
@@ -1078,14 +1069,13 @@ async function handleNextStep() {
         return;
     }
 
-    const matchExists = await checkMatchExists(homeTeam, awayTeam);
-
-    if (!matchExists) {
-        showStage('match-exists-confirmation-stage');
-        return; 
-    }
-    
-    proceedToFillForm();
+    checkMatchExists(homeTeam, awayTeam).then(({ exists }) => {
+        if (!exists) {
+            showStage('match-exists-confirmation-stage');
+        } else {
+            proceedToFillForm();
+        }
+    });
 }
 
 function proceedToFillForm() {
@@ -1208,23 +1198,17 @@ function handleAddTiebreaker() {
 
 
 
-/**
- * 显示确认页面
- */
 function handleSendToNotion() {
     const summaryHTML = generateConfirmationHTML();
     elements.confirmationSummary.innerHTML = summaryHTML;
-
-    elements.outputStage.classList.remove('active-stage');
-    elements.confirmationStage.classList.add('active-stage');
+    showStage('confirmation-stage');
 }
 
 /**
  * 返回修改
  */
 function handleCancelSend() {
-    elements.confirmationStage.classList.remove('active-stage');
-    elements.outputStage.classList.add('active-stage');
+    showStage('output-stage');
 }
 
 /**
@@ -1250,6 +1234,12 @@ async function handleConfirmSend() {
 
     try {
         const token = await getAuthToken();
+        
+        // 在发送前再次检查是否存在以获取 pageId
+        const { exists, pageId } = await checkMatchExists(STATE.homeTeam, STATE.awayTeam);
+        if (exists) {
+            data.pageId = pageId;
+        }
 
         const response = await fetch('/api/send-to-notion', {
             method: 'POST',
@@ -1263,8 +1253,12 @@ async function handleConfirmSend() {
 
         if (response.ok) {
             alert('成功发送到Notion！');
-            elements.confirmationStage.classList.remove('active-stage');
-            elements.inputStage.classList.add('active-stage');
+            showStage('input-stage');
+            // 清理状态以便开始新的输入
+            STATE.homeTeam = '';
+            STATE.awayTeam = '';
+            elements.homeTeamSelect.value = '';
+            elements.awayTeamSelect.value = '';
         } else {
             const errorResult = await response.json();
             alert(`发送失败: ${errorResult.message || '未知错误'}`);
@@ -1491,22 +1485,11 @@ async function handleVerifyDatabase() {
 }
 
 function handleGoToFill() {
-    showStage('app-container');
-    elements.inputStage.classList.add('active-stage');
-    elements.outputStage.classList.remove('active-stage');
-    elements.queryStage.classList.remove('active-stage');
+    showStage('input-stage');
 }
 
 function handleBackToChoice() {
-    elements.appContainer.style.display = 'none';
-
-    elements.inputStage.classList.remove('active-stage');
-    elements.outputStage.classList.remove('active-stage');
-    elements.queryStage.classList.remove('active-stage');
-
-    elements.choiceStage.style.display = 'block';
-    elements.choiceStage.classList.add('active-stage');
-
+    // 清理状态
     elements.queryResultContainer.innerHTML = '';
     if(elements.queryTeamSelect) elements.queryTeamSelect.value = '';
 
@@ -1522,6 +1505,8 @@ function handleBackToChoice() {
     elements.matchTitle.textContent = '';
     elements.matchesContainer.innerHTML = '';
     render();
+
+    showStage('choice-stage');
 }
 
 
@@ -1626,24 +1611,13 @@ function generateConfirmationHTML() {
     return html;
 }
 
-/**
- * 处理“查询赛果”按钮点击事件
- */
 async function handleGoToQuery() {
-    elements.choiceStage.style.display = 'none';
-    elements.choiceStage.classList.remove('active-stage');
-
-    elements.appContainer.style.display = 'block';
-    elements.queryStage.classList.add('active-stage');
+    showStage('query-stage');
     
-    elements.inputStage.classList.remove('active-stage');
-    elements.outputStage.classList.remove('active-stage');
-
-
     try {
         if (!getCurrentUser()) {
             alert("请先登录！");
-            handleBackToInput();
+            showStage('choice-stage');
             return;
         }
         const token = await getAuthToken();

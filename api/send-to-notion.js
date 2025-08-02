@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     const token = authorizationHeader.replace('Bearer ', '');
     const authResult = await verifyAuth(token);
 
-    const { properties, children } = req.body;
+    const { properties, children, pageId } = req.body;
     const submitterName = authResult.username;
     
     const propertiesWithUser = {
@@ -78,29 +78,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "缺少主队或客队信息" });
     }
 
-    const response = await notion.databases.query({
-        database_id: databaseId,
-        filter: {
-            "and": [
-                {
-                    "property": "主场",
-                    "select": {
-                        "equals": homeTeam
-                    }
-                },
-                {
-                    "property": "客场",
-                    "select": {
-                        "equals": awayTeam
-                    }
-                }
-            ]
-        }
-    });
-
-    if (response.results.length > 0) {
-      const pageId = response.results[0].id;
-      
+    if (pageId) {
       await notion.pages.update({
         page_id: pageId,
         properties: propertiesWithUser,
@@ -142,10 +120,12 @@ export default async function handler(req, res) {
         ...children 
       ];
 
-      await notion.blocks.children.append({
-        block_id: pageId,
-        children: blocksToAppend,
-      });
+      if (children && children.length > 0) {
+        await notion.blocks.children.append({
+          block_id: pageId,
+          children: blocksToAppend,
+        });
+      }
 
       res.status(200).json({ message: `用户 ${submitterName} 的赛果已成功更新！` });
 

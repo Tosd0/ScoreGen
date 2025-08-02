@@ -78,7 +78,11 @@ export default async function handler(req, res) {
         }
     });
 
-    res.status(200).json({ exists: response.results.length > 0 });
+    if (response.results.length > 0) {
+        res.status(200).json({ exists: true, pageId: response.results[0].id });
+    } else {
+        res.status(200).json({ exists: false });
+    }
 
   } catch (error) {
     console.error("请求失败详情:", error);
