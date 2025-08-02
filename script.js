@@ -140,6 +140,10 @@ const elements = {
     queryTeamSelect: document.getElementById('query-team-select'),
     queryResultContainer: document.getElementById('query-result-container'),
     backToChoiceButton: document.getElementById('back-to-choice-button'),
+    // match exists confirmation
+    matchExistsConfirmationStage: document.getElementById('match-exists-confirmation-stage'),
+    reviewMatchButton: document.getElementById('review-match-button'),
+    continueSubmitButton: document.getElementById('continue-submit-button'),
 };
 
 // Clerk initialization
@@ -234,34 +238,60 @@ async function startClerk() {
  * @param {string} stageId 要显示的页面的ID
  */
 function showStage(stageId) {
-    const stages = ['login-container', 'database-id-container', 'choice-stage', 'app-container'];
-    stages.forEach(id => {
+    const topLevelStages = ['login-container', 'database-id-container', 'choice-stage', 'app-container'];
+    const appSubStages = [
+        'input-stage', 
+        'output-stage', 
+        'confirmation-stage', 
+        'query-stage', 
+        'match-exists-confirmation-stage'
+    ];
+
+    // 确定哪个顶级容器应该是活动的
+    let activeTopLevel = '';
+    if (topLevelStages.includes(stageId)) {
+        activeTopLevel = stageId;
+    } else if (appSubStages.includes(stageId)) {
+        activeTopLevel = 'app-container';
+    }
+
+    // 显示正确的顶级容器并隐藏其他容器
+    topLevelStages.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (id === stageId) {
-                el.style.display = 'block';
-                if(el.classList.contains('card')) {
+            el.style.display = (id === activeTopLevel) ? 'block' : 'none';
+            if (el.classList.contains('card')) {
+                if (id === activeTopLevel) {
                     el.classList.add('active-stage');
-                }
-            } else {
-                el.style.display = 'none';
-                if(el.classList.contains('card')) {
+                } else {
                     el.classList.remove('active-stage');
                 }
             }
         }
     });
 
-    if (stageId === 'app-container') {
-        elements.appContainer.style.display = 'block';
-        elements.inputStage.classList.add('active-stage');
-        elements.outputStage.classList.remove('active-stage');
-        elements.queryStage.classList.remove('active-stage');
-    } else if (stageId === 'query-stage') {
-        elements.appContainer.style.display = 'block';
-        elements.inputStage.classList.remove('active-stage');
-        elements.outputStage.classList.remove('active-stage');
-        elements.queryStage.classList.add('active-stage');
+    // 现在，处理 app-container 内的子舞台
+    if (activeTopLevel === 'app-container') {
+        appSubStages.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (id === stageId) {
+                    el.style.display = 'block';
+                    el.classList.add('active-stage');
+                } else {
+                    el.style.display = 'none';
+                    el.classList.remove('active-stage');
+                }
+            }
+        });
+        // 当直接显示 app-container 时，默认显示 input-stage
+        if (stageId === 'app-container') {
+            const inputStage = document.getElementById('input-stage');
+            if (inputStage) {
+                inputStage.style.display = 'block';
+                inputStage.classList.add('active-stage');
+            }
+        }
     }
 }
 
@@ -864,6 +894,8 @@ function bindEventListeners() {
     if (elements.backToChoiceButton) elements.backToChoiceButton.addEventListener('click', handleBackToChoice);
     if (elements.homeLineupInput) elements.homeLineupInput.addEventListener('input', handleLineupInputChange);
     if (elements.awayLineupInput) elements.awayLineupInput.addEventListener('input', handleLineupInputChange);
+    if (elements.reviewMatchButton) elements.reviewMatchButton.addEventListener('click', handleReviewMatch);
+    if (elements.continueSubmitButton) elements.continueSubmitButton.addEventListener('click', handleContinueSubmit);
 }
 
 // Token login functions
@@ -994,6 +1026,31 @@ async function getAuthToken() {
     throw new Error('未找到有效的认证信息');
 }
 
+async function checkMatchExists(homeTeam, awayTeam) {
+    try {
+        const token = await getAuthToken();
+        const databaseId = STATE.databaseId;
+        const response = await fetch(`/api/check-match?databaseId=${databaseId}&homeTeam=${encodeURIComponent(homeTeam)}&awayTeam=${encodeURIComponent(awayTeam)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '检查比赛是否存在时出错');
+        }
+
+        const data = await response.json();
+        return data.exists;
+
+    } catch (error) {
+        console.error('检查比赛是否存在时出错:', error);
+        alert(`检查比赛时出错: ${error.message}`);
+        return false; // 发生错误时假定比赛不存在，以免阻塞用户
+    }
+}
+
 function handleChangeDatabase(e) {
     e.preventDefault();
 
@@ -1008,15 +1065,33 @@ function handleChangeDatabase(e) {
     showDatabaseIdContainer();
 }
 
-function handleNextStep() {
+async function handleNextStep() {
     const homeTeam = elements.homeTeamSelect.value;
     const awayTeam = elements.awayTeamSelect.value;
-    const matchMode = elements.matchModeSelect.querySelector('input:checked').value;
 
     if (!homeTeam || !awayTeam) {
         alert('请选择队伍');
         return;
     }
+    if (homeTeam === awayTeam) {
+        alert('主队和客队不能相同');
+        return;
+    }
+
+    const matchExists = await checkMatchExists(homeTeam, awayTeam);
+
+    if (!matchExists) {
+        showStage('match-exists-confirmation-stage');
+        return; 
+    }
+    
+    proceedToFillForm();
+}
+
+function proceedToFillForm() {
+    const homeTeam = elements.homeTeamSelect.value;
+    const awayTeam = elements.awayTeamSelect.value;
+    const matchMode = elements.matchModeSelect.querySelector('input:checked').value;
 
     STATE.homeTeam = homeTeam;
     STATE.awayTeam = awayTeam;
@@ -1036,11 +1111,18 @@ function handleNextStep() {
         STATE.games.push({ id: `bo${i}` });
     }
 
-    elements.inputStage.classList.remove('active-stage');
-    elements.outputStage.classList.add('active-stage');
+    showStage('output-stage');
     elements.matchTitle.textContent = `${homeTeam} vs ${awayTeam}`;
 
     render();
+}
+
+function handleReviewMatch() {
+    showStage('input-stage');
+}
+
+function handleContinueSubmit() {
+    proceedToFillForm();
 }
 
 function handleGameInputChange(e) {
