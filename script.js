@@ -1298,8 +1298,8 @@ function handleRestoreState() {
             elements.awayLineupLabel.textContent = `${STATE.awayTeam || '客队'} 首发名单：`;
         }
 
-        elements.inputStage.classList.remove('active-stage');
-        elements.outputStage.classList.add('active-stage');
+        showStage('output-stage');
+        
         elements.matchTitle.textContent = `${STATE.homeTeam} vs ${STATE.awayTeam}`;
         
         render();
@@ -1709,11 +1709,11 @@ function renderQueryResults(results) {
  * 处理返回按钮点击事件
  */
 function handleBackToInput() {
-    elements.queryStage.classList.remove('active-stage');
-    elements.inputStage.classList.add('active-stage');
+    showStage('input-stage');
     elements.queryResultContainer.innerHTML = '';
     elements.queryTeamSelect.value = '';
 }
+
 
 // --- 7. INITIALIZATION ---
 bindLoginEventListeners();
